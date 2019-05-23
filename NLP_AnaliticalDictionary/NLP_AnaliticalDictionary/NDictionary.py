@@ -20,6 +20,24 @@ class NDictionary(object):
         result.root = TreeNode.fromDict(dict[NDictionary._root])
         return result
 
+    def fromString(string):
+        states = {"token" : 0, "count" : 1, "annon" : 2}
+        result = NDictionary()
+        stack = []
+        stack.aappend(result.root)
+
+        length = len(string)
+        iterator = 0
+
+        while(iterator < length):
+            next_symbol = string[iterator]
+
+
+
+
+
+        return result
+
     def toFile(self, path):
         toWrite = self.toJSON()
         file = open(path, "w+")
@@ -35,18 +53,23 @@ class NDictionary(object):
     def add(self, ngram, annotation):
         self.root.count = self.root.count + 1
         currentNode = self.root
-        for i in range(0, len(ngram)):
+        for i in range(0, len(ngram)): #przechodzimy po ścieżce w drzewie definiowanej przez ciąg POS-tagów
             tmpNode = None
-            if(ngram[i] in currentNode.children):
+            if(ngram[i] in currentNode.children): #element jest dzieckiem danego węzła
                 tmpNode = currentNode.children[ngram[i]]
                 if(not annotation in tmpNode.annotations and annotation is not None):
-                    tmpNode.annotations.append(annotation)
+                   tmpNode.annotations[annotation] = 0
             else:
                 currentNode.children[ngram[i]] = TreeNode(annotation)
                 tmpNode = currentNode.children[ngram[i]]
             currentNode = tmpNode
             currentNode.count = currentNode.count + 1
+            if annotation is not None:
+                currentNode.annotations[annotation] = currentNode.annotations[annotation] + 1
+        
     
+
+
     def addSequence(self, sequence, annotation = None):
         sequence = self.__filter(sequence)
         toAdd = []
@@ -58,6 +81,8 @@ class NDictionary(object):
         while len(toAdd) > 0:
             self.add(toAdd, annotation)
             toAdd = toAdd[1:]
+
+
 
     def __filter(self, sequence):
         sequence = list(sequence)
@@ -123,7 +148,7 @@ class NDictionary(object):
         _howMany = "howMany"
         dicc = {_currNGram: [], _counts: []}
         if(howMany == -1):
-            howMany = root.count
+            howMany = self.root.count
         def enterN(si, kwargs):
             counts = kwargs[_counts]
             currNGram = kwargs[_currNGram]
@@ -152,24 +177,6 @@ class NDictionary(object):
             return result
         return self.searchTree(None, enterN, exitN, final, **dicc)
 
-    def fromString(string):
-        states = {"token" : 0, "count" : 1, "annon" : 2}
-        result = NDictionary()
-        stack = []
-        stack.aappend(result.root)
-
-        length = len(string)
-        iterator = 0
-
-        while(iterator < length):
-            next_symbol = string[iterator]
-
-
-
-
-
-        return result
-
    
 
 
@@ -180,9 +187,9 @@ class TreeNode:
     def __init__(self, annon = None):
         self.count = 0
         if annon is None:
-            self.annotations = []
+            self.annotations = {}
         else:
-            self.annotations = [annon]
+            self.annotations = {annon : 0}
 
         self.children = {}
     def toJSON(self):
