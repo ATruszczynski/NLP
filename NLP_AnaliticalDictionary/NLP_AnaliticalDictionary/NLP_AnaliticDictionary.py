@@ -12,7 +12,7 @@ import ntpath
 pathh = "C:\\Users\\Aleksander\\Downloads\\KorraAV.docx"
 #pathh = "C:\\Users\\Aleksander\\Downloads\\BackToUs.docx"
 
-pathhh = "C:\\Users\\Aleksander\\Desktop\\NLP_test_folder\\Nowyfolder\\Fairgame.txt"
+pathhh = "C:\\Users\\Aleksander\\Desktop\\NLP_test_folder\\Nowyfolder\\Test.txt"
 pathhhh = "C:\\Users\Aleksander\\source\\repos\\NLP_Final\\NLP\\NLP_AnaliticalDictionary\\NLP_AnaliticalDictionary\\Test.txt"
 
 
@@ -116,6 +116,19 @@ td = NDictionary.fromTxtFile(pathhhh, treeDep)
 dicc = NDictionary.HTTicks(td, ht)
 
 print(dicc)
+
+#print(td.mostPopular(2,2,10))
+
+print(td.root.count)
+
+def metric (t1, t2):
+    if t2 is not None:
+        return 1
+    else:
+        return 0
+
+print(NDictionary.treeDistance(td, ht, metric))
+
 
 
 

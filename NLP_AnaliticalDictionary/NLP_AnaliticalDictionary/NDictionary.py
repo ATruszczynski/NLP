@@ -69,12 +69,12 @@ class NDictionary(object):
     def add(self, ngram, annotation):
         
         currentNode = self.root
-        currentNode.count = currentNode.count + 1
-        if(annotation is not None):
-            if not annotation in currentNode.annotations:
-                currentNode.annotations[annotation] = 0
-            currentNode.annotations[annotation] = currentNode.annotations[annotation] + 1
         for i in range(0, len(ngram)): #przechodzimy po ścieżce w drzewie definiowanej przez ciąg POS-tagów
+            self.root.count = self.root.count + 1
+            if(annotation is not None):
+                if not annotation in self.root.annotations:
+                    self.root.annotations[annotation] = 0
+                self.root.annotations[annotation] = self.root.annotations[annotation] + 1
             tmpNode = None
             if(ngram[i] in currentNode.children): #element jest dzieckiem danego węzła
                 tmpNode = currentNode.children[ngram[i]]
@@ -122,19 +122,22 @@ class NDictionary(object):
         if init is not None:
             init(kwargs)
         stack = []
+        currNGram = []
         stack.append(StackItem(0, "root", self.root))
         while(len(stack) > 0):
-            si = stack.pop()   
+            si = stack.pop()  
             if(si.touched == False):
+                currNGram.append(si.token)
                 if(enterN is not None):
-                    enterN(si, kwargs)
+                    enterN(si, currNGram, kwargs)
                 si.touched = True
                 stack.append(si)
                 for key in si.treeNode.children:
                     stack.append(StackItem(si.depth + 1, key, si.treeNode.children[key]))
             else:
                 if(exitN is not None):
-                    exitN(si, kwargs)
+                    exitN(si, currNGram, kwargs)
+                currNGram.pop()
         if(final is not None):
             return final(kwargs)
         else:
@@ -144,12 +147,12 @@ class NDictionary(object):
         _result = "result"
         _separator = "separator"
         dicc = {_separator: separator, _result: ""}
-        def enterN(si, kwargs):
+        def enterN(si, currNGram, kwargs):
             separator = kwargs[_separator]
             result = kwargs[_result]
             result += (si.token + "-" + str(si.treeNode.count) + "-" + str(si.treeNode.annotations) + separator)
             kwargs[_result] = result
-        def exitN(si, kwargs):
+        def exitN(si, currNGram, kwargs):
             separator = kwargs[_separator]
             result = kwargs[_result]
             if(si.depth != 0):
@@ -162,18 +165,12 @@ class NDictionary(object):
         return self.searchTree(None, enterN, exitN, final, **dicc)
 
     def mostPopular(self, minDepth, maxDepth, howMany = -1):
-        _currNGram = "currNGram"
         _counts = "counts"
-        _minDepth = "minD"
-        _maxDepth = "maxD"
-        _howMany = "howMany"
-        dicc = {_currNGram: [], _counts: []}
+        dicc = {_counts: []}
         if(howMany == -1):
             howMany = self.root.count
-        def enterN(si, kwargs):
+        def enterN(si, currNGram, kwargs):
             counts = kwargs[_counts]
-            currNGram = kwargs[_currNGram]
-            currNGram.append(si.token)
             candidate = (si.treeNode.count, currNGram.copy(), si.treeNode.annotations)
             if(si.depth in range(minDepth, maxDepth + 1)):
                 if(len(counts) < howMany):
@@ -183,12 +180,6 @@ class NDictionary(object):
                     if(candidate[0] > counts[0][0]):
                         counts[0] = candidate
             kwargs[_counts] = counts
-            kwargs[_currNGram] = currNGram
-        def exitN(si, kwargs):
-            currNGram = kwargs[_currNGram]
-            if(len(currNGram) > 0):
-                currNGram = currNGram[0:len(currNGram)-1]
-            kwargs[_currNGram] = currNGram
         def final(kwargs):
             counts = kwargs[_counts]
             counts = sorted(counts, reverse = True, key = lambda x: x[0])
@@ -196,17 +187,13 @@ class NDictionary(object):
             for item in counts:
                 result += (str(item[1][1:]) + "-" + str(item[2]) + ": " + str(round(item[0]/self.root.count,5)) + "\n")
             return result
-        return self.searchTree(None, enterN, exitN, final, **dicc)
+        return self.searchTree(None, enterN, None, final, **dicc)
 
     def HTTicks(tree, hyperTree):
         _currTick = "currTicks"
-        _currNGram = "currNGram"
-        dicc = { _currTick: {}, _currNGram: [] }
-        def enterN(si, kwargs):
+        dicc = { _currTick: {} }
+        def enterN(si, currNGram, kwargs):
             currTicks = kwargs[_currTick]
-            currNGram = kwargs[_currNGram]
-
-            currNGram.append(si.token)
 
             htnode = hyperTree.access(currNGram)
             if htnode is not None:
@@ -215,14 +202,8 @@ class NDictionary(object):
                         currTicks[ann] = 0
                     currTicks[ann] = currTicks[ann] + htnode.annotations[ann]
 
-            kwargs[_currNGram] = currNGram
             kwargs[_currTick] = currTicks
-
-        def exitN(si, kwargs):
-            currNGram = kwargs[_currNGram]
-            if(len(currNGram) > 0):
-                currNGram = currNGram[0:len(currNGram)-1]
-            kwargs[_currNGram] = currNGram
+        
         def final(kwargs):
             currTicks = kwargs[_currTick]
             for i in currTicks:
@@ -233,32 +214,39 @@ class NDictionary(object):
             for r in ct_sort_keys:
                 result[r] = currTicks[r]
             return result
-        return tree.searchTree(None, enterN, exitN, final, **dicc)
+        return tree.searchTree(None, enterN, None, final, **dicc)
 
     def treeDistance(tree1, tree2, metric):
-        _distance = "currTicks"
-        _currNGram = "currNGram"
-        dicc = { _distance: {}, _currNGram: [] }
-        def enterN(si, kwargs):
+        _distance = "distance"
+        dicc = { _distance: 0 }
+        def enterN(si, currNGram, kwargs):
             distance = kwargs[_distance]
-            currNGram = kwargs[_currNGram]
-
-            currNGram.append(si.token)
-
+            #print(currNGram)
             t2Node = tree2.access(currNGram)
             if t2Node is not None:
                 distance = distance + metric(si.treeNode, t2Node)
             else:
                 distance = distance + metric(si.treeNode, None)
 
-            kwargs[_currNGram] = currNGram
             kwargs[_distance] = distance
 
-        def exitN(si, kwargs):
-            currNGram = kwargs[_currNGram]
-            if(len(currNGram) > 0):
-                currNGram = currNGram[0:len(currNGram)-1]
-            kwargs[_currNGram] = currNGram
+        def final(kwargs):
+            return kwargs[_distance]
+
+        dicc[_distance] = tree1.searchTree(None, enterN, None, final, **dicc)
+
+        def enterN2(si, currNGram, kwargs):
+            distance = kwargs[_distance]
+            
+            t1Node = tree1.access(currNGram)
+
+            if t1Node is None:
+                distance = distance + metric(si.treeNode, None)
+
+            kwargs[_distance] = distance
+
+        return tree2.searchTree(None, enterN2, None, final, **dicc) 
+        
 
 
     def access(self, postags):
