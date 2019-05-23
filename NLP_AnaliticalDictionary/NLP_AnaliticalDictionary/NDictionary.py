@@ -235,6 +235,32 @@ class NDictionary(object):
             return result
         return tree.searchTree(None, enterN, exitN, final, **dicc)
 
+    def treeDistance(tree1, tree2, metric):
+        _distance = "currTicks"
+        _currNGram = "currNGram"
+        dicc = { _distance: {}, _currNGram: [] }
+        def enterN(si, kwargs):
+            distance = kwargs[_distance]
+            currNGram = kwargs[_currNGram]
+
+            currNGram.append(si.token)
+
+            t2Node = tree2.access(currNGram)
+            if t2Node is not None:
+                distance = distance + metric(si.treeNode, t2Node)
+            else:
+                distance = distance + metric(si.treeNode, None)
+
+            kwargs[_currNGram] = currNGram
+            kwargs[_distance] = distance
+
+        def exitN(si, kwargs):
+            currNGram = kwargs[_currNGram]
+            if(len(currNGram) > 0):
+                currNGram = currNGram[0:len(currNGram)-1]
+            kwargs[_currNGram] = currNGram
+
+
     def access(self, postags):
         currNode = self.root
         if postags[0] == "root":
