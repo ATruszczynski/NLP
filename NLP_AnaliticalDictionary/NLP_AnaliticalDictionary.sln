@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2046
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "NLP_AnaliticalDictionary", "NLP_AnaliticalDictionary\NLP_AnaliticalDictionary.pyproj", "{B4A1F0C9-D7CA-4E1C-A426-066F0CAB2268}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B4A1F0C9-D7CA-4E1C-A426-066F0CAB2268}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4A1F0C9-D7CA-4E1C-A426-066F0CAB2268}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {321E2990-E568-4AC8-936C-D000DF29BC50}
+	EndGlobalSection
+EndGlobal
