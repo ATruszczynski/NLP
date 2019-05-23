@@ -14,7 +14,7 @@
     <InterpreterId>Global|ContinuumAnalytics|Anaconda36-64</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-all C:\Users\Aleksander\Desktop\NLP_test_folder\Nowyfolder PL -v True -all C:\Users\Aleksander\Desktop\NLP_test_folder EN -d TreeSult -ht OmegaTree</CommandLineArguments>
+    <CommandLineArguments>-all C:\Users\Aleksander\Desktop\NLP_test_folder\Nowyfolder PL -v True -all C:\Users\Aleksander\Desktop\NLP_test_folder EN</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

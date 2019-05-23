@@ -1,7 +1,7 @@
 #from Converter import wordToPOS, txtToPOS, writeToNationTree
 from Converter import *
 import enum
-from NDictionary import NDictionary
+from NDictionary import *
 #from NDictionary import Dicc
 import sys
 import json
@@ -12,14 +12,15 @@ import ntpath
 pathh = "C:\\Users\\Aleksander\\Downloads\\KorraAV.docx"
 #pathh = "C:\\Users\\Aleksander\\Downloads\\BackToUs.docx"
 
-pathhh = "C:\\Users\\Aleksander\\Desktop\\NLP_test_folder\\BackToUsS.txt"
+pathhh = "C:\\Users\\Aleksander\\Desktop\\NLP_test_folder\\Nowyfolder\\Fairgame.txt"
+pathhhh = "C:\\Users\Aleksander\\source\\repos\\NLP_Final\\NLP\\NLP_AnaliticalDictionary\\NLP_AnaliticalDictionary\\Test.txt"
 
 
 
-treeDep = 5           
+treeDep = 6           
 
 directoryName = "TReesults"
-hyperTreeName = "HyperTree"
+hyperTreeName = "HyperTree.json"
 verbose = False
 
 
@@ -106,8 +107,15 @@ if verbose and len(toWrite) > 0:
 
 
 
+ht = NDictionary.fromJSONFile(hyperTreePath)
 
+#print(ht.mostPopular(3,5, 10))
 
+td = NDictionary.fromTxtFile(pathhhh, treeDep)
+
+dicc = NDictionary.HTTicks(td, ht)
+
+print(dicc)
 
 
 

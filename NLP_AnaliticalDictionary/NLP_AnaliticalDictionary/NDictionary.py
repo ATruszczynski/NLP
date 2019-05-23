@@ -1,5 +1,11 @@
 from StackItem import StackItem
+import nltk
+import docx2txt
+#from NDictionary import *
+import sys
 import json
+import os
+import ntpath
 
 class NDictionary(object):
     toRemove = list(("\"", ":", ";", "(", ")", " ", "",'', "DT", "...",'','``',"''"))
@@ -44,15 +50,30 @@ class NDictionary(object):
         file.write(json.dumps(toWrite))
         file.close()
 
-    def fromFile(path):
+    def fromJSONFile(path):
         file = open(path, "r")
         jsonS = file.read()
+        file.close()
         dict = json.loads(jsonS)
         return NDictionary.fromDict(dict)
 
+    def fromTxtFile(path, treeDep):
+        file = open(path, "r")
+        text = file.read()
+        file.close()
+
+        tree = NDictionary(treeDep)
+        tree.addSequence(txtToPOS(text))
+        return tree
+
     def add(self, ngram, annotation):
-        self.root.count = self.root.count + 1
+        
         currentNode = self.root
+        currentNode.count = currentNode.count + 1
+        if(annotation is not None):
+            if not annotation in currentNode.annotations:
+                currentNode.annotations[annotation] = 0
+            currentNode.annotations[annotation] = currentNode.annotations[annotation] + 1
         for i in range(0, len(ngram)): #przechodzimy po ścieżce w drzewie definiowanej przez ciąg POS-tagów
             tmpNode = None
             if(ngram[i] in currentNode.children): #element jest dzieckiem danego węzła
@@ -177,6 +198,55 @@ class NDictionary(object):
             return result
         return self.searchTree(None, enterN, exitN, final, **dicc)
 
+    def HTTicks(tree, hyperTree):
+        _currTick = "currTicks"
+        _currNGram = "currNGram"
+        dicc = { _currTick: {}, _currNGram: [] }
+        def enterN(si, kwargs):
+            currTicks = kwargs[_currTick]
+            currNGram = kwargs[_currNGram]
+
+            currNGram.append(si.token)
+
+            htnode = hyperTree.access(currNGram)
+            if htnode is not None:
+                for ann in htnode.annotations:
+                    if not ann in currTicks:
+                        currTicks[ann] = 0
+                    currTicks[ann] = currTicks[ann] + htnode.annotations[ann]
+
+            kwargs[_currNGram] = currNGram
+            kwargs[_currTick] = currTicks
+
+        def exitN(si, kwargs):
+            currNGram = kwargs[_currNGram]
+            if(len(currNGram) > 0):
+                currNGram = currNGram[0:len(currNGram)-1]
+            kwargs[_currNGram] = currNGram
+        def final(kwargs):
+            currTicks = kwargs[_currTick]
+            for i in currTicks:
+                currTicks[i] = currTicks[i] / hyperTree.root.annotations[i]
+            ct_sort_keys = sorted(currTicks, key=currTicks.get, reverse=True)
+
+            result = {}
+            for r in ct_sort_keys:
+                result[r] = currTicks[r]
+            return result
+        return tree.searchTree(None, enterN, exitN, final, **dicc)
+
+    def access(self, postags):
+        currNode = self.root
+        if postags[0] == "root":
+            postags = postags[1:]
+        for it in range(0, len(postags)):
+            if postags[it] in currNode.children:
+                currNode = currNode.children[postags[it]]
+            else:
+                return None
+        return currNode
+
+
    
 
 
@@ -212,4 +282,72 @@ class TreeNode:
         return result
 
 
+def wordToPOS(path, rrange = None, rprint = False):
+    text = docx2txt.process(path)
+    sentences = nltk.sent_tokenize(text)
+    words = []
+    for x in range(0, len(sentences)):
+        tmpsent = nltk.word_tokenize(sentences[x])
+        for y in range(0, len(tmpsent)):
+            words.append(tmpsent[y])
+    tagged = nltk.pos_tag(words)
+    POSes = []
+    for x in range(0, len(tagged)):
+        POSes.append(tagged[x][1])
+    if(rrange is None):
+        rrange = (0, len(words))
+    if(rprint):
+        print(words[rrange[0]: rrange[1]])
+    return (POSes[rrange[0]:rrange[1]])
 
+def txtToPOS(text):
+    sentences = nltk.sent_tokenize(text)
+    words = []
+    for x in range(0, len(sentences)):
+        tmpsent = nltk.word_tokenize(sentences[x])
+        for y in range(0, len(tmpsent)):
+            words.append(tmpsent[y])
+    tagged = nltk.pos_tag(words)
+    POSes = []
+    for x in range(0, len(tagged)):
+        POSes.append(tagged[x][1])
+    return POSes
+
+def makeDirIfNec(directoryPath):
+    if not os.path.exists(directoryPath):
+        os.mkdir(directoryPath)
+
+def writeToNationTree(pathToFile, treeDep, nat, resultDirectoryPath):
+    file = open(pathToFile, "r")
+    text = file.read()
+    file.close()
+
+    natTreeFileName = nat + "_Tree.json"
+    newTreeFilePath = os.path.join(resultDirectoryPath, natTreeFileName)
+
+    if not os.path.exists(newTreeFilePath):
+        tree = NDictionary(treeDep)
+    else:
+        tree = NDictionary.fromJSONFile(newTreeFilePath)
+
+    
+    tree.addSequence(txtToPOS(text), nat)
+
+    makeDirIfNec(resultDirectoryPath)
+
+    tree.toFile(newTreeFilePath)
+
+def writeToHyperTree(pathToText, treeDepth, nat, directoryName, treePath):
+    directoryPath = makeDirIfNec(directoryName)
+    if os.path.exists(treePath):
+        hyperTree = NDictionary.fromJSONFile(treePath)
+    else:
+        hyperTree = NDictionary(treeDepth)
+
+    file = open(pathToText, "r")
+    text = file.read()
+    file.close()
+
+    hyperTree.addSequence(txtToPOS(text), nat)
+
+    hyperTree.toFile(treePath)
