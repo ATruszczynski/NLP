@@ -1,9 +1,10 @@
 from StackItem import StackItem
+import json
 
 class NDictionary(object):
     toRemove = list(("\"", ":", ";", "(", ")", " ", "",'', "DT", "...",'','``',"''"))
-    _maxDepth = "maxDepthKey"
-    _root = "rootKey"
+    _maxDepth = "mdk"
+    _root = "rk"
     def __init__(self, md = 4):
         #self.content = { _maxDepth : md, _root : TreeNode() }
         self.maxDepth = md
@@ -18,6 +19,18 @@ class NDictionary(object):
         result.maxDepth = dict[NDictionary._maxDepth]
         result.root = TreeNode.fromDict(dict[NDictionary._root])
         return result
+
+    def toFile(self, path):
+        toWrite = self.toJSON()
+        file = open(path, "w+")
+        file.write(json.dumps(toWrite))
+        file.close()
+
+    def fromFile(path):
+        file = open(path, "r")
+        jsonS = file.read()
+        dict = json.loads(jsonS)
+        return NDictionary.fromDict(dict)
 
     def add(self, ngram, annotation):
         self.root.count = self.root.count + 1
@@ -161,9 +174,9 @@ class NDictionary(object):
 
 
 class TreeNode:
-    _count = "countKey"
-    _annotations = "annotationsKey"
-    _children = "childrenKey"
+    _count = "cn"
+    _annotations = "an"
+    _children = "ch"
     def __init__(self, annon = None):
         self.count = 0
         if annon is None:

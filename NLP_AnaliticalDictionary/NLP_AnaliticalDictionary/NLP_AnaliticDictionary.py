@@ -4,9 +4,13 @@ from NDictionary import NDictionary
 #from NDictionary import Dicc
 import sys
 import json
+import os
 
 pathh = "C:\\Users\\Aleksander\\Downloads\\KorraAV.docx"
 #pathh = "C:\\Users\\Aleksander\\Downloads\\BackToUs.docx"
+
+resultPath = "TReesults"
+
 treeDep = 5
 minLen = 2
 maxLen = 2
@@ -39,7 +43,18 @@ print(pathh)
 #print(td.print())
 print(td.mostPopular(minLen,maxLen,firstN))
 
-f = open("Desu.txt", "w+")
-f.write(json.dumps(td.toJSON()))
-f.close()
+desu = "Desu.txt"
+
+#td.toFile(desu)
+
+#td2 = NDictionary.fromFile(desu)
+
+#print(td2.mostPopular(minLen, maxLen, firstN))
+
+cwd = os.getcwd()
+print(cwd)
+
+resPath = os.path.join(cwd, resultPath)
+
+os.mkdir(resPath)
 
