@@ -226,7 +226,7 @@ class NDictionary(object):
             return result
         return tree.searchTree(None, enterN, None, final, **dicc)
 
-    def characteristic(tree, ht, minLv = None, tol = 3):
+    def characteristic(tree, ht, minLv = None, tol = 2):
         if minLv is None:
             minLv = ht.maxDepth
         _currTick = "currTicks"
@@ -242,7 +242,7 @@ class NDictionary(object):
                         ann = getDictKey(sort_ann, i)
                         if ann not in currTick:
                             currTick[ann] = 0
-                        currTick[ann] = currTick[ann] + htnode.annotations[ann]/ht.root.annotations[ann]
+                        currTick[ann] = currTick[ann] + 1
 
             kwargs[_currTick] = currTick
 
