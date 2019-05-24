@@ -6,6 +6,7 @@ import sys
 import json
 import os
 import ntpath
+from math import sqrt
 
 class NDictionary(object):
     toRemove = list(("\"", ":", ";", "(", ")", " ", "",'', "DT", "...",'','``',"''"))
@@ -216,40 +217,80 @@ class NDictionary(object):
             return result
         return tree.searchTree(None, enterN, None, final, **dicc)
 
-    def treeDistance(tree1, tree2, metric):
+    def simpleMetricComp(tree, ht, metric, nat):
         _distance = "distance"
         dicc = { _distance: 0 }
         def enterN(si, currNGram, kwargs):
             distance = kwargs[_distance]
-            #print(currNGram)
-            t2Node = tree2.access(currNGram)
-            if t2Node is not None:
-                distance = distance + metric(si.treeNode, t2Node)
+
+            htNode = ht.access(currNGram, nat)
+            if htNode is not None:
+                distance = distance + metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
             else:
-                distance = distance + metric(si.treeNode, None)
+                distance = distance + metric(si.treeNode.count/tree.root.count, 0)
 
             kwargs[_distance] = distance
 
         def final(kwargs):
             return kwargs[_distance]
 
-        dicc[_distance] = tree1.searchTree(None, enterN, None, final, **dicc)
+        dicc[_distance] = tree.searchTree(None, enterN, None, final, **dicc)
 
         def enterN2(si, currNGram, kwargs):
             distance = kwargs[_distance]
             
-            t1Node = tree1.access(currNGram)
-
-            if t1Node is None:
-                distance = distance + metric(si.treeNode, None)
+            if nat in si.treeNode.annotations:
+                treeNode = tree.access(currNGram)
+                if treeNode is None:
+                    distance = distance + metric(si.treeNode.annotations[nat]/ht.root.annotations[nat], 0)
 
             kwargs[_distance] = distance
 
-        return tree2.searchTree(None, enterN2, None, final, **dicc) 
+        return ht.searchTree(None, enterN2, None, final, **dicc) 
+
+    def cosineWithHt(tree, ht, nat):
+        _AA = "A"
+        _BB = "B"
+        _AB = "AB"
+        dicc = {  _AB : 0, _AA : 0, _BB : 0 }
+        def enterN1(si, currNGram, kwargs):
+            AB = kwargs[_AB]
+            AA = kwargs[_AA]
+
+            htNode = ht.access(currNGram, nat)
+            if htNode is not None:
+                AB = AB + (si.treeNode.count/tree.root.count)*(htNode.annotations[nat]/ht.root.annotations[nat])
+            AA = AA + (si.treeNode.count/tree.root.count)**2
+
+            kwargs[_AB] = AB
+            kwargs[_AA] = AA
+
+        def final1 (kwargs):
+            return { _AA : kwargs[_AA], _AB : kwargs[_AB] }
+
+        tDicc = tree.searchTree(None, enterN1, None, final1, **dicc)
+        dicc[_AA] = tDicc[_AA]
+        dicc[_AB] = tDicc[_AB]
+
+        def enterN2(si, currNGram, kwargs):
+            BB = kwargs[_BB]
+
+            if nat in si.treeNode.annotations:
+                BB = BB + (si.treeNode.annotations[nat]/ht.root.annotations[nat])**2
+            
+            kwargs[_BB] = BB
+
+        def final2(kwargs):
+            return { _BB : kwargs[_BB] }
+
+        tDicc = ht.searchTree(None, enterN2, None, final2, **dicc)
+        dicc[_BB] = tDicc[_BB]
+        print(dicc)
+        return dicc[_AB]/(sqrt(dicc[_AA])*sqrt(dicc[_BB]))
         
 
 
-    def access(self, postags):
+    def access(self, postags, nation = None):
         currNode = self.root
         if postags[0] == "root":
             postags = postags[1:]
@@ -258,7 +299,12 @@ class NDictionary(object):
                 currNode = currNode.children[postags[it]]
             else:
                 return None
-        return currNode
+        if nation is None:
+            return currNode
+        if nation in currNode.annotations:
+            return currNode
+        else:
+            return None
 
 
    

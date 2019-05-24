@@ -12,7 +12,7 @@ import ntpath
 pathh = "C:\\Users\\Aleksander\\Downloads\\KorraAV.docx"
 #pathh = "C:\\Users\\Aleksander\\Downloads\\BackToUs.docx"
 
-pathhh = "C:\\Users\\Aleksander\\Desktop\\NLP_test_folder\\Nowyfolder\\Test.txt"
+pathhh = "C:\\Users\\Aleksander\\Desktop\\NLP_test_folder\\Nowyfolder\\KorraAV.txt"
 pathhhh = "C:\\Users\Aleksander\\source\\repos\\NLP_Final\\NLP\\NLP_AnaliticalDictionary\\NLP_AnaliticalDictionary\\Test.txt"
 
 
@@ -91,9 +91,9 @@ hyperTreePath = path.join(directoryPath, hyperTreeName)
 for i in range(0, len(toWrite)):
     path = toWrite[i]
     nat = toWriteNats[i]
-    if verbose: 
-        print(ntpath.basename(path) + " - " + nat)
-    writeToNationTree(path, treeDep, nat, directoryPath)
+    #if verbose: 
+    #    print(ntpath.basename(path) + " - " + nat)
+    #writeToNationTree(path, treeDep, nat, directoryPath)
     if verbose:
         print("Nat tree written")
     writeToHyperTree(path, treeDep, nat, directoryPath, hyperTreePath)
@@ -109,25 +109,39 @@ if verbose and len(toWrite) > 0:
 
 ht = NDictionary.fromJSONFile(hyperTreePath)
 
+#print(ht.mostPopular(2,2,50))
+
+#print(NDictionary.fromJSONFile(path.join(directoryPath, "EN_Tree.json")).mostPopular(2,2,50))
+
 #print(ht.mostPopular(3,5, 10))
+
+pt1 = "C:\\Users\\Aleksander\\Desktop\\NLP_test_folder\\Nowyfolder\\Test.txt"
+pt2 = "C:\\Users\\Aleksander\\Desktop\\NLP_test_folder\\Nowyfolder\\Test2.txt"
 
 td = NDictionary.fromTxtFile(pathhhh, treeDep)
 
-dicc = NDictionary.HTTicks(td, ht)
+#dicc = NDictionary.HTTicks(td, ht)
 
-print(dicc)
+#print(dicc)
 
 #print(td.mostPopular(2,2,10))
 
-print(td.root.count)
+#print(td.root.count)
 
 def metric (t1, t2):
-    if t2 is not None:
-        return 1
-    else:
-        return 0
+    return abs(t2 - t1)
 
-print(NDictionary.treeDistance(td, ht, metric))
+#print(NDictionary.simpleMetricComp(td, ht, metric, "PL"))
+#print(NDictionary.simpleMetricComp(td, ht, metric, "EN"))
+
+def metric (t1, t2):
+    return abs(t2 - t1)**2
+
+#print(NDictionary.simpleMetricComp(td, ht, metric, "PL"))
+#print(NDictionary.simpleMetricComp(td, ht, metric, "EN"))
+
+print(NDictionary.cosineWithHt(td, ht, "PL"))
+print(NDictionary.cosineWithHt(td, ht, "EN"))
 
 
 
