@@ -7,9 +7,10 @@ import json
 import os
 import ntpath
 from math import sqrt
+from pdf2txt import *
 
 class NDictionary(object):
-    toRemove = list(("\"", ":", ";", "(", ")", " ", "",'', "DT", "...",'','``',"''"))
+    toRemove = list(("\"", ":", ";", "(", ")", " ", "",'', "DT", "...",'','``',"''", "\n"))
     _maxDepth = "mdk"
     _root = "rk"
     def __init__(self, md = 4):
@@ -58,8 +59,16 @@ class NDictionary(object):
         dict = json.loads(jsonS)
         return NDictionary.fromDict(dict)
 
+    def fromTagFile(path, treeDep):
+       result = NDictionary(treeDep)
+       tags = tagsFromTagFile(path)
+       result.addSequence(tags)
+       return result
+
+
+
     def fromTxtFile(path, treeDep):
-        file = open(path, "r")
+        file = open(path, "r", encoding="utf-8")
         text = file.read()
         file.close()
 
@@ -195,7 +204,7 @@ class NDictionary(object):
         dicc = { _currTick: {} }
         def enterN(si, currNGram, kwargs):
             currTicks = kwargs[_currTick]
-
+            
             htnode = hyperTree.access(currNGram)
             if htnode is not None:
                 for ann in htnode.annotations:
@@ -216,6 +225,32 @@ class NDictionary(object):
                 result[r] = currTicks[r]
             return result
         return tree.searchTree(None, enterN, None, final, **dicc)
+
+    def characteristic(tree, ht, minLv = None, tol = 3):
+        if minLv is None:
+            minLv = ht.maxDepth
+        _currTick = "currTicks"
+        dicc = { _currTick: {} }
+        def enterN(si, currNGram, kwargs):
+            currTick = kwargs[_currTick]
+
+            htnode = ht.access(currNGram)
+            if htnode is not None:
+                if si.depth >= minLv:
+                    sort_ann = sortDictByValue(htnode.annotations, True)
+                    for i in range(0, min(len(sort_ann), tol)):
+                        ann = getDictKey(sort_ann, i)
+                        if ann not in currTick:
+                            currTick[ann] = 0
+                        currTick[ann] = currTick[ann] + htnode.annotations[ann]/ht.root.annotations[ann]
+
+            kwargs[_currTick] = currTick
+
+        def final(kwargs):
+            return sortDictByValue(kwargs[_currTick], True)
+
+        return tree.searchTree(None, enterN, None, final, **dicc)
+
 
     def simpleMetricComp(tree, ht, metric, nat):
         _distance = "distance"
@@ -285,10 +320,31 @@ class NDictionary(object):
 
         tDicc = ht.searchTree(None, enterN2, None, final2, **dicc)
         dicc[_BB] = tDicc[_BB]
-        print(dicc)
         return dicc[_AB]/(sqrt(dicc[_AA])*sqrt(dicc[_BB]))
         
+    def analisys(tree, ht):
+        dicc1 = NDictionary.HTTicks(tree, ht)
+        euc = {}
+        def eucMetric(n1, n2):
+            return abs(n1 - n2)
+        euc2 = {}
+        def euc2Metric(n1, n2):
+            return (n1 - n2)**2
+        cos = {}
+        for nat in ht.root.annotations:
+            euc[nat] = NDictionary.simpleMetricComp(tree, ht, eucMetric, nat)
+            euc2[nat] = NDictionary.simpleMetricComp(tree, ht, euc2Metric, nat)
+            cos[nat] = NDictionary.cosineWithHt(tree, ht, nat)
 
+        euc = sortDictByValue(euc)
+        euc2 = sortDictByValue(euc2)
+        cos = sortDictByValue(cos, True)
+
+        #print([dicc1, euc, euc2, cos])
+
+        dicc2 = NDictionary.characteristic(tree, ht)
+
+        return { "Sim" : getDictKey(dicc1,0), "euc" : getDictKey(euc,0), "euc2" :getDictKey(euc2,0), "cos" : getDictKey(cos,0), "char": getDictKey(dicc2, 0) }
 
     def access(self, postags, nation = None):
         currNode = self.root
@@ -305,6 +361,22 @@ class NDictionary(object):
             return currNode
         else:
             return None
+
+    def touch(self, postags, count, annotations):
+        currNode = self.root
+        it = 1
+        while it < len(postags):
+            if postags[it] in currNode.children:
+                currNode = currNode.children[postags[it]]
+            else:
+                currNode.children[postags[it]] = TreeNode()
+                currNode = currNode.children[postags[it]]
+            it = it + 1
+        currNode.count = count
+        currNode.annotations = annotations
+
+
+        
 
 
    
@@ -340,6 +412,7 @@ class TreeNode:
             children[child] = TreeNode.fromDict(childDict[child])
         result.children = children
         return result
+
 
 
 def wordToPOS(path, rrange = None, rprint = False):
@@ -404,10 +477,30 @@ def writeToHyperTree(pathToText, treeDepth, nat, directoryName, treePath):
     else:
         hyperTree = NDictionary(treeDepth)
 
-    file = open(pathToText, "r")
+    file = open(pathToText, "r", encoding="utf-8")
     text = file.read()
     file.close()
+
+    #print(text)
 
     hyperTree.addSequence(txtToPOS(text), nat)
 
     hyperTree.toFile(treePath)
+
+
+def sortDictByValue(dict, reversed = False):
+    ct_sort_keys = sorted(dict, key=dict.get, reverse=reversed)
+    result = {}
+    for r in ct_sort_keys:
+        result[r] = dict[r]
+    return result 
+
+def getDictKey(dict, ind):
+    return list(dict.keys())[ind]
+
+def tagsFromTagFile(path):
+    readSent = load(path)
+    readPairs = []
+    for sent in readSent:
+        readPairs.extend([pair for pair in sent])
+    return [pair[1] for pair in readPairs]

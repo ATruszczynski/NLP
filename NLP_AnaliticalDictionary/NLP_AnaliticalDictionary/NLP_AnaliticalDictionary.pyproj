@@ -14,8 +14,7 @@
     <InterpreterId>Global|ContinuumAnalytics|Anaconda36-64</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>
-    </CommandLineArguments>
+    <CommandLineArguments>"C:\Users\Aleksander\Desktop\NLP_test_folder\PDFs\EN to test\1.txt" -d FirstConv</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -33,6 +32,7 @@
     <Compile Include="Converter.py" />
     <Compile Include="NDictionary.py" />
     <Compile Include="NLP_AnaliticDictionary.py" />
+    <Compile Include="pdf2txt.py" />
     <Compile Include="StackItem.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
