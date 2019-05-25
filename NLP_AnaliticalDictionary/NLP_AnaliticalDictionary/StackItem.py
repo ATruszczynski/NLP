@@ -5,4 +5,9 @@ class StackItem:
         self.token = t
         self.treeNode = tn
 
+class NGramTuple:
+    def __init__(self, _ngram, _value):
+        self.ngram = _ngram
+        self.value = _value
+
 

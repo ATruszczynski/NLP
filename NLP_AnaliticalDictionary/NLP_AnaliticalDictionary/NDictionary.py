@@ -1,4 +1,4 @@
-from StackItem import StackItem
+from StackItem import *
 import nltk
 import docx2txt
 #from NDictionary import *
@@ -13,6 +13,9 @@ class NDictionary(object):
     toRemove = list(("\"", ":", ";", "(", ")", " ", "",'', "DT", "...",'','``',"''", "\n"))
     _maxDepth = "mdk"
     _root = "rk"
+    distance = "distance"
+    signN = "sign"
+    maxi = 5
     def __init__(self, md = 4):
         #self.content = { _maxDepth : md, _root : TreeNode() }
         self.maxDepth = md
@@ -77,9 +80,8 @@ class NDictionary(object):
         return tree
 
     def add(self, ngram, annotation):
-        
         currentNode = self.root
-        for i in range(0, len(ngram)): #przechodzimy po ścieżce w drzewie definiowanej przez ciąg POS-tagów
+        for i in range(0, len(ngram)):
             self.root.count = self.root.count + 1
             if(annotation is not None):
                 if not annotation in self.root.annotations:
@@ -89,7 +91,7 @@ class NDictionary(object):
             if(ngram[i] in currentNode.children): #element jest dzieckiem danego węzła
                 tmpNode = currentNode.children[ngram[i]]
                 if(not annotation in tmpNode.annotations and annotation is not None):
-                   tmpNode.annotations[annotation] = 0
+                    tmpNode.annotations[annotation] = 0
             else:
                 currentNode.children[ngram[i]] = TreeNode(annotation)
                 tmpNode = currentNode.children[ngram[i]]
@@ -237,7 +239,10 @@ class NDictionary(object):
             htnode = ht.access(currNGram)
             if htnode is not None:
                 if si.depth >= minLv:
-                    sort_ann = sortDictByValue(htnode.annotations, True)
+                    ht_an = htnode.annotations
+                    for it in ht_an:
+                        ht_an[it] = ht_an[it]/htnode.annotations[it]
+                    sort_ann = sortDictByValue(ht_an)
                     for i in range(0, min(len(sort_ann), tol)):
                         ann = getDictKey(sort_ann, i)
                         if ann not in currTick:
@@ -251,25 +256,34 @@ class NDictionary(object):
 
         return tree.searchTree(None, enterN, None, final, **dicc)
 
-
-    def simpleMetricComp(tree, ht, metric, nat):
-        _distance = "distance"
-        dicc = { _distance: 0 }
+    
+    def simpleMetricComp(tree, ht, metric, nat, reversed = False):
+        _distance = NDictionary.distance
+        _signN = NDictionary.signN
+        dicc = { _distance: 0, _signN: [] }
         def enterN(si, currNGram, kwargs):
             distance = kwargs[_distance]
+            signN = kwargs[_signN]
 
             htNode = ht.access(currNGram, nat)
             if htNode is not None:
-                distance = distance + metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
+                #distance = distance + metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
+                toAdd = metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
             else:
-                distance = distance + metric(si.treeNode.count/tree.root.count, 0)
+                #distance = distance + metric(si.treeNode.count/tree.root.count, 0)
+                toAdd = metric(si.treeNode.count/tree.root.count, 0)
+
+            signN = addToSortedListOfNGTup(signN, NGramTuple(currNGram, toAdd), reversed)
+
+            distance = distance + toAdd
 
             kwargs[_distance] = distance
+            kwargs[_signN] = signN
 
         def final(kwargs):
-            return kwargs[_distance]
+            return kwargs
 
-        dicc[_distance] = tree.searchTree(None, enterN, None, final, **dicc)
+        dicc = tree.searchTree(None, enterN, None, final, **dicc)
 
         def enterN2(si, currNGram, kwargs):
             distance = kwargs[_distance]
@@ -287,25 +301,32 @@ class NDictionary(object):
         _AA = "A"
         _BB = "B"
         _AB = "AB"
-        dicc = {  _AB : 0, _AA : 0, _BB : 0 }
+        _signN = NDictionary.signN
+        dicc = {  _AB : 0, _AA : 0, _BB : 0, _signN: [] }
         def enterN1(si, currNGram, kwargs):
             AB = kwargs[_AB]
             AA = kwargs[_AA]
+            signN = kwargs[_signN]
 
             htNode = ht.access(currNGram, nat)
             if htNode is not None:
-                AB = AB + (si.treeNode.count/tree.root.count)*(htNode.annotations[nat]/ht.root.annotations[nat])
+                toAdd = (si.treeNode.count/tree.root.count)*(htNode.annotations[nat]/ht.root.annotations[nat])
+                AB = AB + toAdd
+                signN = addToSortedListOfNGTup(signN, NGramTuple(currNGram, toAdd), True)
+
             AA = AA + (si.treeNode.count/tree.root.count)**2
 
             kwargs[_AB] = AB
             kwargs[_AA] = AA
+            kwargs[_signN] = signN
 
         def final1 (kwargs):
-            return { _AA : kwargs[_AA], _AB : kwargs[_AB] }
+            return { _AA : kwargs[_AA], _AB : kwargs[_AB], _signN : kwargs[_signN] }
 
         tDicc = tree.searchTree(None, enterN1, None, final1, **dicc)
         dicc[_AA] = tDicc[_AA]
         dicc[_AB] = tDicc[_AB]
+        dicc[_signN] = tDicc[_signN]
 
         def enterN2(si, currNGram, kwargs):
             BB = kwargs[_BB]
@@ -320,9 +341,9 @@ class NDictionary(object):
 
         tDicc = ht.searchTree(None, enterN2, None, final2, **dicc)
         dicc[_BB] = tDicc[_BB]
-        return dicc[_AB]/(sqrt(dicc[_AA])*sqrt(dicc[_BB]))
+        return { NDictionary.distance: dicc[_AB]/(sqrt(dicc[_AA])*sqrt(dicc[_BB])), NDictionary.signN : dicc[NDictionary.signN] }
         
-    def analisys(tree, ht):
+    def analisys(tree, ht, verbose = True):
         dicc1 = NDictionary.HTTicks(tree, ht)
         euc = {}
         def eucMetric(n1, n2):
@@ -335,15 +356,25 @@ class NDictionary(object):
             euc[nat] = NDictionary.simpleMetricComp(tree, ht, eucMetric, nat)
             euc2[nat] = NDictionary.simpleMetricComp(tree, ht, euc2Metric, nat)
             cos[nat] = NDictionary.cosineWithHt(tree, ht, nat)
-
-        euc = sortDictByValue(euc)
-        euc2 = sortDictByValue(euc2)
-        cos = sortDictByValue(cos, True)
-
-        #print([dicc1, euc, euc2, cos])
+        #print(NDictionary.simpleMetricComp(tree, ht, eucMetric, nat))
+        euc = sortDictByValue(euc, _key = lambda x: euc[x][NDictionary.distance])
+        euc2 = sortDictByValue(euc2,  _key = lambda x: euc2[x][NDictionary.distance])
+        cos = sortDictByValue(cos, True, _key = lambda x: cos[x][NDictionary.distance])
 
         dicc2 = NDictionary.characteristic(tree, ht)
+        if verbose:
+            print("Sim")
+            print(dicc1)
+            print("Euc")
+            print(euc)
+            print("Euc2")
+            print(euc2)
+            print("cos")
+            print(cos)
+            print("char")
+            print(dicc2)
 
+        #print(ht.print())
         return { "Sim" : getDictKey(dicc1,0), "euc" : getDictKey(euc,0), "euc2" :getDictKey(euc2,0), "cos" : getDictKey(cos,0), "char": getDictKey(dicc2, 0) }
 
     def access(self, postags, nation = None):
@@ -374,8 +405,6 @@ class NDictionary(object):
             it = it + 1
         currNode.count = count
         currNode.annotations = annotations
-
-
         
 
 
@@ -488,14 +517,18 @@ def writeToHyperTree(pathToText, treeDepth, nat, directoryName, treePath):
     hyperTree.toFile(treePath)
 
 
-def sortDictByValue(dict, reversed = False):
-    ct_sort_keys = sorted(dict, key=dict.get, reverse=reversed)
+def sortDictByValue(dict,  reversed = False, _key = None):
+    if _key is None:
+        _key = dict.get
+    ct_sort_keys = sorted(dict, key=_key, reverse=reversed)
     result = {}
     for r in ct_sort_keys:
         result[r] = dict[r]
     return result 
 
 def getDictKey(dict, ind):
+    if(len(dict) == 0):
+        return None
     return list(dict.keys())[ind]
 
 def tagsFromTagFile(path):
@@ -504,3 +537,14 @@ def tagsFromTagFile(path):
     for sent in readSent:
         readPairs.extend([pair for pair in sent])
     return [pair[1] for pair in readPairs]
+
+def addToSortedListOfNGTup(list, elem, reveersed = False):
+    list.append(elem)
+    list = sorted(list, key = lambda x: x.value, reverse = reveersed)
+    if(len(list) > NDictionary.maxi):
+        list.pop()
+    return list
+
+def printLNG(l):
+    for i in l:
+        print(str(i.ngram) + " - " + str(i.value))

@@ -82,4 +82,5 @@ if verbose and len(toWrite) > 0:
 
 ht = NDictionary.fromJSONFile(hyperTreePath)
 
-print(NDictionary.analisys(td, ht))
+print(NDictionary.analisys(td, ht, True))
+
