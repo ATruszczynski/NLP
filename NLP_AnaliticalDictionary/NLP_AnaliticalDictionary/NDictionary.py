@@ -15,7 +15,8 @@ class NDictionary(object):
     _root = "rk"
     distance = "distance"
     signN = "sign"
-    maxi = 5
+    maxi = 0
+    analDepth = 5
     def __init__(self, md = 4):
         #self.content = { _maxDepth : md, _root : TreeNode() }
         self.maxDepth = md
@@ -207,19 +208,20 @@ class NDictionary(object):
         def enterN(si, currNGram, kwargs):
             currTicks = kwargs[_currTick]
             
-            htnode = hyperTree.access(currNGram)
-            if htnode is not None:
-                for ann in htnode.annotations:
-                    if not ann in currTicks:
-                        currTicks[ann] = 0
-                    currTicks[ann] = currTicks[ann] + htnode.annotations[ann]
+            if(si.depth >= NDictionary.analDepth):
+                htnode = hyperTree.access(currNGram)
+                if htnode is not None:
+                    for ann in htnode.annotations:
+                        if not ann in currTicks:
+                            currTicks[ann] = 0
+                        currTicks[ann] = currTicks[ann] + htnode.annotations[ann]/hyperTree.root.annotations[ann]
 
             kwargs[_currTick] = currTicks
         
         def final(kwargs):
             currTicks = kwargs[_currTick]
-            for i in currTicks:
-                currTicks[i] = currTicks[i] / hyperTree.root.annotations[i]
+            #for i in currTicks:
+            #    currTicks[i] = currTicks[i] / hyperTree.root.annotations[i]
             ct_sort_keys = sorted(currTicks, key=currTicks.get, reverse=True)
 
             result = {}
@@ -236,9 +238,10 @@ class NDictionary(object):
         def enterN(si, currNGram, kwargs):
             currTick = kwargs[_currTick]
 
-            htnode = ht.access(currNGram)
-            if htnode is not None:
-                if si.depth >= minLv:
+            
+            if(si.depth >= NDictionary.analDepth):
+                htnode = ht.access(currNGram)
+                if htnode is not None:
                     ht_an = htnode.annotations
                     for it in ht_an:
                         ht_an[it] = ht_an[it]/htnode.annotations[it]
@@ -264,18 +267,27 @@ class NDictionary(object):
         def enterN(si, currNGram, kwargs):
             distance = kwargs[_distance]
             signN = kwargs[_signN]
+            
+            if(si.depth >= NDictionary.analDepth):
+                htNode = ht.access(currNGram, nat)
+                if htNode is not None:
+                    #distance = distance + metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
+                    toAdd = metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
+                else:
+                    #distance = distance + metric(si.treeNode.count/tree.root.count, 0)
+                    toAdd = metric(si.treeNode.count/tree.root.count, 0)
 
-            htNode = ht.access(currNGram, nat)
-            if htNode is not None:
-                #distance = distance + metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
-                toAdd = metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
-            else:
-                #distance = distance + metric(si.treeNode.count/tree.root.count, 0)
-                toAdd = metric(si.treeNode.count/tree.root.count, 0)
+                tal = NGramTuple(currNGram.copy(), toAdd)
+                #print("adding")
+                #printLNG([tal])
+                #print("curr")
+                #printLNG(signN)
+                signN = addToSortedListOfNGTup(signN, tal, reversed)
+                #print("updated")
+                #printLNG(signN)
+                #input("d")
 
-            signN = addToSortedListOfNGTup(signN, NGramTuple(currNGram, toAdd), reversed)
-
-            distance = distance + toAdd
+                distance = distance + toAdd
 
             kwargs[_distance] = distance
             kwargs[_signN] = signN
@@ -287,11 +299,12 @@ class NDictionary(object):
 
         def enterN2(si, currNGram, kwargs):
             distance = kwargs[_distance]
-            
-            if nat in si.treeNode.annotations:
-                treeNode = tree.access(currNGram)
-                if treeNode is None:
-                    distance = distance + metric(si.treeNode.annotations[nat]/ht.root.annotations[nat], 0)
+
+            if(si.depth >= NDictionary.analDepth):
+                if nat in si.treeNode.annotations:
+                    treeNode = tree.access(currNGram)
+                    if treeNode is None:
+                        distance = distance + metric(si.treeNode.annotations[nat]/ht.root.annotations[nat], 0)
 
             kwargs[_distance] = distance
 
@@ -308,13 +321,14 @@ class NDictionary(object):
             AA = kwargs[_AA]
             signN = kwargs[_signN]
 
-            htNode = ht.access(currNGram, nat)
-            if htNode is not None:
-                toAdd = (si.treeNode.count/tree.root.count)*(htNode.annotations[nat]/ht.root.annotations[nat])
-                AB = AB + toAdd
-                signN = addToSortedListOfNGTup(signN, NGramTuple(currNGram, toAdd), True)
+            if(si.depth >= NDictionary.analDepth):
+                htNode = ht.access(currNGram, nat)
+                if htNode is not None:
+                    toAdd = (si.treeNode.count/tree.root.count)*(htNode.annotations[nat]/ht.root.annotations[nat])
+                    AB = AB + toAdd
+                    signN = addToSortedListOfNGTup(signN, NGramTuple(currNGram, toAdd), True)
 
-            AA = AA + (si.treeNode.count/tree.root.count)**2
+                AA = AA + (si.treeNode.count/tree.root.count)**2
 
             kwargs[_AB] = AB
             kwargs[_AA] = AA
@@ -331,8 +345,9 @@ class NDictionary(object):
         def enterN2(si, currNGram, kwargs):
             BB = kwargs[_BB]
 
-            if nat in si.treeNode.annotations:
-                BB = BB + (si.treeNode.annotations[nat]/ht.root.annotations[nat])**2
+            if(si.depth >= NDictionary.analDepth):
+                if nat in si.treeNode.annotations:
+                    BB = BB + (si.treeNode.annotations[nat]/ht.root.annotations[nat])**2
             
             kwargs[_BB] = BB
 
@@ -356,12 +371,12 @@ class NDictionary(object):
             euc[nat] = NDictionary.simpleMetricComp(tree, ht, eucMetric, nat)
             euc2[nat] = NDictionary.simpleMetricComp(tree, ht, euc2Metric, nat)
             cos[nat] = NDictionary.cosineWithHt(tree, ht, nat)
-        #print(NDictionary.simpleMetricComp(tree, ht, eucMetric, nat))
+        ##print(NDictionary.simpleMetricComp(tree, ht, eucMetric, nat))
         euc = sortDictByValue(euc, _key = lambda x: euc[x][NDictionary.distance])
         euc2 = sortDictByValue(euc2,  _key = lambda x: euc2[x][NDictionary.distance])
         cos = sortDictByValue(cos, True, _key = lambda x: cos[x][NDictionary.distance])
-
-        dicc2 = NDictionary.characteristic(tree, ht)
+        #
+        dicc2 = NDictionary.characteristic(tree, ht, tol = 2)
         if verbose:
             print("Sim")
             print(dicc1)
@@ -374,7 +389,7 @@ class NDictionary(object):
             print("char")
             print(dicc2)
 
-        #print(ht.print())
+        #printLNG(euc["EN"][NDictionary.signN])
         return { "Sim" : getDictKey(dicc1,0), "euc" : getDictKey(euc,0), "euc2" :getDictKey(euc2,0), "cos" : getDictKey(cos,0), "char": getDictKey(dicc2, 0) }
 
     def access(self, postags, nation = None):
@@ -499,16 +514,34 @@ def writeToNationTree(pathToFile, treeDep, nat, resultDirectoryPath):
 
     tree.toFile(newTreeFilePath)
 
-def writeToHyperTree(pathToText, treeDepth, nat, directoryName, treePath):
+#def writeToHyperTree(pathToText, treeDepth, nat, directoryName, treePath):
+#    directoryPath = makeDirIfNec(directoryName)
+#    if os.path.exists(treePath):
+#        hyperTree = NDictionary.fromJSONFile(treePath)
+#    else:
+#        hyperTree = NDictionary(treeDepth)
+
+#    file = open(pathToText, "r", encoding="utf-8")
+#    text = file.read()
+#    file.close()
+
+#    #print(text)
+
+#    hyperTree.addSequence(txtToPOS(text), nat)
+
+#    hyperTree.toFile(treePath)
+
+
+def writeToHyperTree(text, treeDepth, nat, directoryName, treePath):
     directoryPath = makeDirIfNec(directoryName)
     if os.path.exists(treePath):
         hyperTree = NDictionary.fromJSONFile(treePath)
     else:
         hyperTree = NDictionary(treeDepth)
 
-    file = open(pathToText, "r", encoding="utf-8")
-    text = file.read()
-    file.close()
+    #file = open(pathToText, "r", encoding="utf-8")
+    #text = file.read()
+    #file.close()
 
     #print(text)
 

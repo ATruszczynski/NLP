@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>b4a1f0c9-d7ca-4e1c-a426-066f0cab2268</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>pdf2txt.py</StartupFile>
+    <StartupFile>NLP_AnaliticDictionary.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -14,7 +14,7 @@
     <InterpreterId>Global|ContinuumAnalytics|Anaconda36-64</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>C:\Users\Aleksander\source\repos\NLP_Final\NLP\NLP_AnaliticalDictionary\NLP_AnaliticalDictionary\Test.txt -d FF</CommandLineArguments>
+    <CommandLineArguments>-d TrueTest</CommandLineArguments>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

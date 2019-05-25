@@ -84,7 +84,7 @@ def _connect_lines_into_sentences(lines):
     return text
 
 
-def _convert(filename):
+def convert(filename):
     pdf_parser = parser.from_file(filename)
     if not 'content' in pdf_parser:
         sys.stderr.write('Could not open file ' + filename + '\n')
@@ -131,7 +131,7 @@ if __name__ == '__main__':
         print('Converting ' + file)
         output_name = file.split('.')[0] + addon_to_name + ".txt"
         output_name_short = file.split('.')[0] + addon_to_name_short + ".txt"
-        out_sentences, out_short_sentences = _convert(file)
+        out_sentences, out_short_sentences = convert(file)
         if out_sentences:
             with open(output_name, 'wt', encoding='utf-8') as f, open(output_name_short, 'wt', encoding='utf-8') as f2:
                 for s in out_sentences:

@@ -10,6 +10,9 @@ from os import getcwd, path
 import ntpath
 from pdf2txt import *
 
+def joinTextList(list, sep):
+    return sep.join(list)
+
 treeDep = 6           
 
 directoryName = "TReesults"
@@ -19,12 +22,15 @@ verbose = False
 it = 1
 toWrite = []
 toWriteNats = []
+treesToCmp = []
+paths = []
 
 while(it < len(sys.argv)):
     arg = sys.argv[it]
     if arg.startswith("-"):
         curra = arg[1:]
         if curra == "a":
+            #dep
             it = it + 1
             toWrite.append(sys.argv[it])
             it = it + 1
@@ -36,11 +42,36 @@ while(it < len(sys.argv)):
             it = it + 1
             nat = sys.argv[it]
 
-            for f in os.listdir(readDirPath):
-                filePath = path.join(readDirPath, f)
-                if path.isfile(filePath) and filePath.endswith(".txt"):
-                    toWrite.append(filePath)
-                    toWriteNats.append(nat)
+            #for f in os.listdir(readDirPath):
+            #    filePath = path.join(readDirPath, f)
+            #    if path.isfile(filePath) and filePath.endswith(".txt"):
+            #        toWrite.append(filePath)
+            #        toWriteNats.append(nat)
+            print("loading " + str(nat))
+            loaded = load_all(readDirPath, False)
+            for load in loaded:
+                text = joinTextList(load, " ")
+                toWrite.append(text)
+                toWriteNats.append(nat)
+
+        if curra == "tall":
+            it = it + 1
+            path = sys.argv[it]
+            files = os.listdir(path)
+            for file in files:
+                if file.endswith(".pdf"):
+                    arg = os.path.join(path, file)
+                    conv = convert(arg)[1]
+                    conv = joinTextList(conv, " ")
+        
+                    td = NDictionary(treeDep)
+                    td.addSequence(txtToPOS(conv))
+                    treesToCmp.append(td)
+                    paths.append(arg)
+
+        if curra == "an":
+            it = it + 1
+            NDictionary.analDepth = sys.argv[it]
 
         if curra == "v":
             it = it + 1
@@ -60,27 +91,56 @@ while(it < len(sys.argv)):
                 hyperTreeName = hyperTreeName + ".json"
 
     else:
-        td = NDictionary.fromTxtFile(arg, treeDep)
+        conv = convert(arg)[1]
+        #print(conv)
+        conv = joinTextList(conv, " ")
+        #print(conv)
+        
+        td = NDictionary(treeDep)
+        td.addSequence(txtToPOS(conv))
+        treesToCmp.append(td)
+        paths.append(arg)
+        #print(td.print())
     
     it = it + 1
 
 cwd = getcwd()
             
-directoryPath = path.join(cwd, directoryName)
-hyperTreePath = path.join(directoryPath, hyperTreeName) 
+directoryPath = os.path.join(cwd, directoryName)
+hyperTreePath = os.path.join(directoryPath, hyperTreeName) 
 
-for i in range(0, len(toWrite)):
-    path = toWrite[i]
-    nat = toWriteNats[i]
-    if verbose:
-        print("Writing " + path + " as " + nat)
-    writeToHyperTree(path, treeDep, nat, directoryPath, hyperTreePath)
-    if verbose:
-        print("Hyper tree written")
-if verbose and len(toWrite) > 0:
-    print("Writing done")
+if(len(toWrite) > 0):
+    makeDirIfNec(directoryPath)
+    if os.path.exists(hyperTreePath):
+        hyperTree = NDictionary.fromJSONFile(hyperTreePath)
+    else:
+        hyperTree = NDictionary(treeDep)
 
-ht = NDictionary.fromJSONFile(hyperTreePath)
+    for i in range(0, len(toWrite)):
+        text = toWrite[i]
+        nat = toWriteNats[i]
+        if verbose:
+            print("Writing text " + str(i) + " as " + nat)
+        #writeToHyperTree(text, treeDep, nat, directoryPath, hyperTreePath)
+        hyperTree.addSequence(txtToPOS(text), nat)
+        if verbose:
+            print("Hyper tree written")
+        
+    hyperTree.toFile(hyperTreePath)
+    if verbose and len(toWrite) > 0:
+        print("Writing done")
 
-print(NDictionary.analisys(td, ht, True))
+
+#ht = NDictionary.fromJSONFile(hyperTreePath)
+#print(ht.root.annotations)
+#ht = NDictionary.fromJSONFile(hyperTreePath)
+
+if len(treesToCmp) > 0:
+    hyperTree = NDictionary.fromJSONFile(hyperTreePath)
+    for i in range(0, len(treesToCmp)):
+        print(paths[i])
+        td = treesToCmp[i]
+        #print(NDictionary.analisys(td, hyperTree, verbose))
+
+
 
