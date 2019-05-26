@@ -8,6 +8,7 @@ import os
 import ntpath
 from math import sqrt
 from pdf2txt import *
+import copy
 
 class NDictionary(object):
     toRemove = list(("\"", ":", ";", "(", ")", " ", "",'', "DT", "...",'','``',"''", "\n"))
@@ -105,7 +106,7 @@ class NDictionary(object):
 
 
     def addSequence(self, sequence, annotation = None):
-        sequence = self.__filter(sequence)
+        sequence = filterr(sequence, self.toRemove)
         toAdd = []
         for i in range(0, len(sequence)):
             toAdd.append(sequence[i])
@@ -118,18 +119,7 @@ class NDictionary(object):
 
 
 
-    def __filter(self, sequence):
-        sequence = list(sequence)
-        last = None
-        nnps = list(("NNP", "NNPS"))
-        result = []
-        for i in range(0, len(sequence)):
-            if(sequence[i] in nnps and last in nnps):
-                continue
-            if(not (sequence[i] in self.toRemove)):
-                result.append(sequence[i])
-            last = sequence[i]
-        return result
+
         
     def searchTree(self, init, enterN, exitN, final, **kwargs):
         if init is not None:
@@ -202,6 +192,31 @@ class NDictionary(object):
             return result
         return self.searchTree(None, enterN, None, final, **dicc)
 
+    def mostPopular2(self, minDepth, maxDepth, nat, howMany = -1):
+        _counts = "counts"
+        dicc = {_counts: []}
+        if(howMany == -1):
+            howMany = self.root.count
+        def enterN(si, currNGram, kwargs):
+            counts = kwargs[_counts]
+            candidate = (si.treeNode.count, currNGram.copy(), si.treeNode.annotations)
+            if(si.depth in range(minDepth, maxDepth + 1)):
+                if(len(counts) < howMany):
+                    counts.append(candidate)
+                else:
+                    counts = sorted(counts, key = lambda x: x[0])
+                    if(candidate[0] > counts[0][0]):
+                        counts[0] = candidate
+            kwargs[_counts] = counts
+        def final(kwargs):
+            counts = kwargs[_counts]
+            counts = sorted(counts, reverse = True, key = lambda x: x[0])
+            result = ""
+            for item in counts:
+                result += (str(item[1][1:]) + "-" + str(item[2]) + ": " + str(round(item[0]/self.root.count,5)) + "\n")
+            return result
+        return self.searchTree(None, enterN, None, final, **dicc)
+
     def HTTicks(tree, hyperTree):
         _currTick = "currTicks"
         dicc = { _currTick: {} }
@@ -242,15 +257,19 @@ class NDictionary(object):
             if(si.depth >= NDictionary.analDepth):
                 htnode = ht.access(currNGram)
                 if htnode is not None:
-                    ht_an = htnode.annotations
+                    ht_an = htnode.annotations.copy()
                     for it in ht_an:
-                        ht_an[it] = ht_an[it]/htnode.annotations[it]
+                        ht_an[it] = ht_an[it]/ht.root.annotations[it]
                     sort_ann = sortDictByValue(ht_an)
-                    for i in range(0, min(len(sort_ann), tol)):
-                        ann = getDictKey(sort_ann, i)
+                    #for i in range(0, min(len(sort_ann), tol)):
+                    #    ann = getDictKey(sort_ann, i)
+                    sav = list(sort_ann.values())
+                    if (len(sav) > 1 and sav[0] > 2 * sav[1]) or len(sav) == 1:
+                        ann = getDictKey(sort_ann, 0)
                         if ann not in currTick:
                             currTick[ann] = 0
                         currTick[ann] = currTick[ann] + 1
+
 
             kwargs[_currTick] = currTick
 
@@ -259,6 +278,23 @@ class NDictionary(object):
 
         return tree.searchTree(None, enterN, None, final, **dicc)
 
+    def countNats(self):
+        _counts = "counts"
+        dicc = {_counts: {} }
+        def enterN(si, currNGram, kwargs):
+            counts = kwargs[_counts]
+            
+            if si.depth >= NDictionary.analDepth:
+                for nat in si.treeNode.annotations:
+                    if nat not in counts:
+                        counts[nat] = 0
+                    counts[nat] = counts[nat] + 1
+            
+
+            kwargs[_counts] = counts
+        def final(kwargs):
+            return kwargs[_counts]
+        return self.searchTree(None, enterN, None, final, **dicc)
     
     def simpleMetricComp(tree, ht, metric, nat, reversed = False):
         _distance = NDictionary.distance
@@ -297,6 +333,8 @@ class NDictionary(object):
 
         dicc = tree.searchTree(None, enterN, None, final, **dicc)
 
+        #print(dicc)
+
         def enterN2(si, currNGram, kwargs):
             distance = kwargs[_distance]
 
@@ -308,7 +346,9 @@ class NDictionary(object):
 
             kwargs[_distance] = distance
 
-        return ht.searchTree(None, enterN2, None, final, **dicc) 
+        dicc = ht.searchTree(None, enterN2, None, final, **dicc) 
+        #print(dicc)
+        return dicc
 
     def cosineWithHt(tree, ht, nat):
         _AA = "A"
@@ -457,7 +497,47 @@ class TreeNode:
         result.children = children
         return result
 
+def filterr(sequence, toRemove):
+    sequence = list(sequence)
+    last = None
+    nnps = list(("NNP", "NNPS", "NN", "JJ"))
+    result = []
 
+    for nn in nnps:
+        tmp = []
+        for it in range(0, len(sequence)):
+            if(sequence[it] == nn and last == nn):
+                continue
+            if(not (sequence[it] in toRemove)):
+                tmp.append(sequence[it])
+            last = sequence[it]
+        sequence = tmp
+
+    toKeep = []
+    for i in range(0, len(sequence)):
+        toKeep.append(True)
+    for it in range(2, len(sequence)):
+        if sequence[it - 2 : it + 1] in [["JJ", "NN", "JJ"], ["NN", "JJ", "NN"], ["NN", "NNP", "NN"], ["NNP", "NN", "NNP"]]:
+            toKeep[it - 2 : it + 1] = [False]*3
+            continue
+
+    tmp = []
+    for i in range(0, len(sequence)):
+        if toKeep[i]:
+            tmp.append(sequence[i])
+
+    sequence = tmp
+
+    result = sequence
+    return result
+
+def listEq(l1, l2):
+    if len(l1) != len(l2):
+        return False
+    for i in range(0, len(l1)):
+        if l1[i] != l2[i]:
+            return False
+    return True
 
 def wordToPOS(path, rrange = None, rprint = False):
     text = docx2txt.process(path)

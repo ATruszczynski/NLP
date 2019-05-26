@@ -15,7 +15,7 @@ sw = stopwords.words('english')
 
 
 def _tokenize(sentence):
-    tokenizer = RegexpTokenizer(r'[a-zA-Z][a-zA-Z]+')
+    tokenizer = RegexpTokenizer(r'(?:[A-Z][a-z]*)|(?:[a-z]+)')
     words = tokenizer.tokenize(sentence)
     return words
 
@@ -27,7 +27,7 @@ def _use_sentence(sentence, l):
         return None, None
     tags = nltk.pos_tag(words)
     (n, v, o) = _count_tags(tags)
-    use = o != 0 and n < 0.99 and v != 0
+    use = o != 0 and n < 0.5 and v != 0
     if use:
         return ' '.join(words), ' '.join(words_without_stop)
     return None, None
@@ -49,7 +49,9 @@ def _count_tags(tags):
 
 
 def _process(paragraph):
-    paragraph = re.sub(r'-$', '', paragraph)
+    paragraph = re.sub(r'([^-]) *$', r'\1 ', paragraph)
+    paragraph = re.sub(r'- *$', '', paragraph)
+    paragraph = re.sub(r'[A-Z][A-Z]+', ' ', paragraph)
     paragraph = paragraph.replace('\ufb00', 'ff')
     paragraph = paragraph.replace('\ufb01', 'fi')
     paragraph = paragraph.replace('\ufb02', 'fl')
@@ -106,6 +108,9 @@ def load(file_name, tags=True):
             return content
         sentences_words = [_tokenize(line) for line in content]
         tags = [nltk.pos_tag(words) for words in sentences_words]
+        with open('a.txt', 'wt', encoding='utf-8') as f:
+            for t in tags:
+                f.write(str(t) + '\n')
         return tags
 
 
@@ -131,7 +136,7 @@ if __name__ == '__main__':
         print('Converting ' + file)
         output_name = file.split('.')[0] + addon_to_name + ".txt"
         output_name_short = file.split('.')[0] + addon_to_name_short + ".txt"
-        out_sentences, out_short_sentences = convert(file)
+        out_sentences, out_short_sentences = _convert(file)
         if out_sentences:
             with open(output_name, 'wt', encoding='utf-8') as f, open(output_name_short, 'wt', encoding='utf-8') as f2:
                 for s in out_sentences:

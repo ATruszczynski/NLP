@@ -14,7 +14,7 @@
     <InterpreterId>Global|ContinuumAnalytics|Anaconda36-64</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-d TrueTest</CommandLineArguments>
+    <CommandLineArguments>-tall C:\Users\Aleksander\Desktop\NLP_test_folder\PDFs\Datasets\DE-test DE -tall C:\Users\Aleksander\Desktop\NLP_test_folder\PDFs\Datasets\PL-test PL -tall C:\Users\Aleksander\Desktop\NLP_test_folder\PDFs\Datasets\EN-test EN -b -v False -d TrueTest8 </CommandLineArguments>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
