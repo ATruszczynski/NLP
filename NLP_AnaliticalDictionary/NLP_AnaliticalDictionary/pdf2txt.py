@@ -86,7 +86,7 @@ def _connect_lines_into_sentences(lines):
     return text
 
 
-def convert(filename):
+def _convert(filename):
     pdf_parser = parser.from_file(filename)
     if not 'content' in pdf_parser:
         sys.stderr.write('Could not open file ' + filename + '\n')
@@ -108,10 +108,7 @@ def load(file_name, tags=True):
             return content
         sentences_words = [_tokenize(line) for line in content]
         tags = [nltk.pos_tag(words) for words in sentences_words]
-        with open('a.txt', 'wt', encoding='utf-8') as f:
-            for t in tags:
-                f.write(str(t) + '\n')
-        return tags
+        return [filter_err(t) for t in tags]
 
 
 def load_all(path='.', tags=True, include_stopwords=False):
@@ -120,6 +117,38 @@ def load_all(path='.', tags=True, include_stopwords=False):
     files = [f for f in all_files if re.match('.*' + addon + '.txt', f)]
     for f in files:
         yield load(os.path.join(path, f), tags)
+
+
+def filter_err(sequence):
+    last = None
+    nnps = ["NNP", "NNPS", "NN", "JJ"]
+
+    for nn in nnps:
+        tmp = []
+        for it in range(0, len(sequence)):
+            if sequence[it][1] == nn and last == nn:
+                continue
+            tmp.append(sequence[it])
+            last = sequence[it][1]
+        sequence = tmp
+
+    to_keep = []
+    for i in range(0, len(sequence)):
+        to_keep.append(True)
+    for it in range(2, len(sequence)):
+        if sequence[it - 2:it + 1][1] in [["JJ", "NN", "JJ"], ["NN", "JJ", "NN"], ["NN", "NNP", "NN"], ["NNP", "NN", "NNP"]]:
+            to_keep[it - 2:it + 1] = [False]*3
+            continue
+
+    tmp = []
+    for i in range(0, len(sequence)):
+        if to_keep[i]:
+            tmp.append(sequence[i])
+
+    sequence = tmp
+
+    result = sequence
+    return result
 
 
 if __name__ == '__main__':

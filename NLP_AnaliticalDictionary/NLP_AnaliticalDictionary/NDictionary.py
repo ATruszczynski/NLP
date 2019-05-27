@@ -17,7 +17,15 @@ class NDictionary(object):
     distance = "distance"
     signN = "sign"
     maxi = 0
-    analDepth = 5
+    minAnalDepth = 5
+    maxAnalDepth = 6
+
+    _sim = "sim"
+    _euc2 = "euc2"
+    _euc3 = "euc3"
+    _cos = "cos"
+    _char = "char"
+
     def __init__(self, md = 4):
         #self.content = { _maxDepth : md, _root : TreeNode() }
         self.maxDepth = md
@@ -135,8 +143,9 @@ class NDictionary(object):
                     enterN(si, currNGram, kwargs)
                 si.touched = True
                 stack.append(si)
-                for key in si.treeNode.children:
-                    stack.append(StackItem(si.depth + 1, key, si.treeNode.children[key]))
+                if si.depth < NDictionary.maxAnalDepth:
+                    for key in si.treeNode.children:
+                        stack.append(StackItem(si.depth + 1, key, si.treeNode.children[key]))
             else:
                 if(exitN is not None):
                     exitN(si, currNGram, kwargs)
@@ -223,7 +232,7 @@ class NDictionary(object):
         def enterN(si, currNGram, kwargs):
             currTicks = kwargs[_currTick]
             
-            if(si.depth >= NDictionary.analDepth):
+            if(si.depth >= NDictionary.minAnalDepth):
                 htnode = hyperTree.access(currNGram)
                 if htnode is not None:
                     for ann in htnode.annotations:
@@ -254,7 +263,7 @@ class NDictionary(object):
             currTick = kwargs[_currTick]
 
             
-            if(si.depth >= NDictionary.analDepth):
+            if(si.depth >= NDictionary.minAnalDepth):
                 htnode = ht.access(currNGram)
                 if htnode is not None:
                     ht_an = htnode.annotations.copy()
@@ -284,7 +293,7 @@ class NDictionary(object):
         def enterN(si, currNGram, kwargs):
             counts = kwargs[_counts]
             
-            if si.depth >= NDictionary.analDepth:
+            if si.depth >= NDictionary.minAnalDepth:
                 for nat in si.treeNode.annotations:
                     if nat not in counts:
                         counts[nat] = 0
@@ -296,37 +305,36 @@ class NDictionary(object):
             return kwargs[_counts]
         return self.searchTree(None, enterN, None, final, **dicc)
     
-    def simpleMetricComp(tree, ht, metric, nat, reversed = False):
+    def simpleMetricComp(tree, ht, metric, reversed = False):
         _distance = NDictionary.distance
         _signN = NDictionary.signN
-        dicc = { _distance: 0, _signN: [] }
+        dicc = {}
+        for natt in ht.root.annotations:
+            dicc[natt] = { _distance : 0, _signN: [] }
+
         def enterN(si, currNGram, kwargs):
-            distance = kwargs[_distance]
-            signN = kwargs[_signN]
-            
-            if(si.depth >= NDictionary.analDepth):
-                htNode = ht.access(currNGram, nat)
-                if htNode is not None:
-                    #distance = distance + metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
-                    toAdd = metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
-                else:
-                    #distance = distance + metric(si.treeNode.count/tree.root.count, 0)
-                    toAdd = metric(si.treeNode.count/tree.root.count, 0)
+            for nat in ht.root.annotations:
+                curr = kwargs[nat]
+                distance = curr[_distance]
+                signN = curr[_signN]
 
-                tal = NGramTuple(currNGram.copy(), toAdd)
-                #print("adding")
-                #printLNG([tal])
-                #print("curr")
-                #printLNG(signN)
-                signN = addToSortedListOfNGTup(signN, tal, reversed)
-                #print("updated")
-                #printLNG(signN)
-                #input("d")
+                if(si.depth >= NDictionary.minAnalDepth):
+                    htNode = ht.access(currNGram, nat)
+                    if htNode is not None:
+                        #distance = distance + metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
+                        toAdd = metric(si.treeNode.count/tree.root.count, htNode.annotations[nat]/ht.root.annotations[nat])
+                    else:
+                        #distance = distance + metric(si.treeNode.count/tree.root.count, 0)
+                        toAdd = metric(si.treeNode.count/tree.root.count, 0)
 
-                distance = distance + toAdd
+                    tal = NGramTuple(currNGram.copy(), toAdd)
+                    signN = addToSortedListOfNGTup(signN, tal, reversed)
 
-            kwargs[_distance] = distance
-            kwargs[_signN] = signN
+                    distance = distance + toAdd
+
+                curr[_distance] = distance
+                curr[_signN] = signN
+                kwargs[nat] = curr
 
         def final(kwargs):
             return kwargs
@@ -336,81 +344,101 @@ class NDictionary(object):
         #print(dicc)
 
         def enterN2(si, currNGram, kwargs):
-            distance = kwargs[_distance]
+            for nat in ht.root.annotations:
+                curr = kwargs[nat]
+                distance = curr[_distance]
 
-            if(si.depth >= NDictionary.analDepth):
-                if nat in si.treeNode.annotations:
-                    treeNode = tree.access(currNGram)
-                    if treeNode is None:
-                        distance = distance + metric(si.treeNode.annotations[nat]/ht.root.annotations[nat], 0)
+                if(si.depth >= NDictionary.minAnalDepth):
+                    if nat in si.treeNode.annotations:
+                        treeNode = tree.access(currNGram)
+                        if treeNode is None:
+                            distance = distance + metric(si.treeNode.annotations[nat]/ht.root.annotations[nat], 0)
 
-            kwargs[_distance] = distance
+                curr[_distance] = distance
+                kwargs[nat] = curr
 
         dicc = ht.searchTree(None, enterN2, None, final, **dicc) 
         #print(dicc)
         return dicc
 
-    def cosineWithHt(tree, ht, nat):
+    def cosineWithHt(tree, ht):
         _AA = "A"
         _BB = "B"
         _AB = "AB"
         _signN = NDictionary.signN
-        dicc = {  _AB : 0, _AA : 0, _BB : 0, _signN: [] }
+        dicc = {}
+        for nat in ht.root.annotations:
+            dicc[nat] = { _AB : 0, _AA : 0, _BB : 0, _signN: [] }
         def enterN1(si, currNGram, kwargs):
-            AB = kwargs[_AB]
-            AA = kwargs[_AA]
-            signN = kwargs[_signN]
+            for nat in ht.root.annotations:
+                curr = kwargs[nat]
+                AB = curr[_AB]
+                AA = curr[_AA]
+                signN = curr[_signN]
 
-            if(si.depth >= NDictionary.analDepth):
-                htNode = ht.access(currNGram, nat)
-                if htNode is not None:
-                    toAdd = (si.treeNode.count/tree.root.count)*(htNode.annotations[nat]/ht.root.annotations[nat])
-                    AB = AB + toAdd
-                    signN = addToSortedListOfNGTup(signN, NGramTuple(currNGram, toAdd), True)
+                if(si.depth >= NDictionary.minAnalDepth):
+                    htNode = ht.access(currNGram, nat)
+                    if htNode is not None:
+                        toAdd = (si.treeNode.count/tree.root.count)*(htNode.annotations[nat]/ht.root.annotations[nat])
+                        AB = AB + toAdd
+                        signN = addToSortedListOfNGTup(signN, NGramTuple(currNGram, toAdd), True)
 
-                AA = AA + (si.treeNode.count/tree.root.count)**2
+                    AA = AA + (si.treeNode.count/tree.root.count)**2
 
-            kwargs[_AB] = AB
-            kwargs[_AA] = AA
-            kwargs[_signN] = signN
+                curr[_AB] = AB
+                curr[_AA] = AA
+                curr[_signN] = signN
+                kwargs[nat] = curr
 
         def final1 (kwargs):
-            return { _AA : kwargs[_AA], _AB : kwargs[_AB], _signN : kwargs[_signN] }
+            return kwargs#{ _AA : kwargs[_AA], _AB : kwargs[_AB], _signN : kwargs[_signN] }
 
-        tDicc = tree.searchTree(None, enterN1, None, final1, **dicc)
-        dicc[_AA] = tDicc[_AA]
-        dicc[_AB] = tDicc[_AB]
-        dicc[_signN] = tDicc[_signN]
+        dicc = tree.searchTree(None, enterN1, None, final1, **dicc)
+        #dicc[_AA] = tDicc[_AA]
+        #dicc[_AB] = tDicc[_AB]
+        #dicc[_signN] = tDicc[_signN]
 
         def enterN2(si, currNGram, kwargs):
-            BB = kwargs[_BB]
+            for nat in ht.root.annotations:
+                curr = kwargs[nat]
+                BB = curr[_BB]
 
-            if(si.depth >= NDictionary.analDepth):
-                if nat in si.treeNode.annotations:
-                    BB = BB + (si.treeNode.annotations[nat]/ht.root.annotations[nat])**2
+                if(si.depth >= NDictionary.minAnalDepth):
+                    if nat in si.treeNode.annotations:
+                        BB = BB + (si.treeNode.annotations[nat]/ht.root.annotations[nat])**2
             
-            kwargs[_BB] = BB
+                curr[_BB] = BB
+                kwargs[nat] = curr
 
         def final2(kwargs):
             return { _BB : kwargs[_BB] }
 
-        tDicc = ht.searchTree(None, enterN2, None, final2, **dicc)
-        dicc[_BB] = tDicc[_BB]
-        return { NDictionary.distance: dicc[_AB]/(sqrt(dicc[_AA])*sqrt(dicc[_BB])), NDictionary.signN : dicc[NDictionary.signN] }
+        dicc = ht.searchTree(None, enterN2, None, final1, **dicc)
+        #dicc[_BB] = tDicc[_BB]
+
+        result = {}
+        for nat in ht.root.annotations:
+            curr = dicc[nat]
+            curr = { NDictionary.distance: curr[_AB]/(sqrt(curr[_AA])*sqrt(curr[_BB])), NDictionary.signN : curr[NDictionary.signN] }
+            result[nat] = curr
+            
+
+        return result
         
     def analisys(tree, ht, verbose = True):
         dicc1 = NDictionary.HTTicks(tree, ht)
         euc = {}
         def eucMetric(n1, n2):
-            return abs(n1 - n2)
+            return (abs(n1 - n2))**3
         euc2 = {}
         def euc2Metric(n1, n2):
             return (n1 - n2)**2
         cos = {}
-        for nat in ht.root.annotations:
-            euc[nat] = NDictionary.simpleMetricComp(tree, ht, eucMetric, nat)
-            euc2[nat] = NDictionary.simpleMetricComp(tree, ht, euc2Metric, nat)
-            cos[nat] = NDictionary.cosineWithHt(tree, ht, nat)
+        #for nat in ht.root.annotations:
+        euc = NDictionary.simpleMetricComp(tree, ht, eucMetric)
+        euc2 = NDictionary.simpleMetricComp(tree, ht, euc2Metric)
+        cos = NDictionary.cosineWithHt(tree, ht)
+        #print(euc)
         ##print(NDictionary.simpleMetricComp(tree, ht, eucMetric, nat))
         euc = sortDictByValue(euc, _key = lambda x: euc[x][NDictionary.distance])
         euc2 = sortDictByValue(euc2,  _key = lambda x: euc2[x][NDictionary.distance])
@@ -429,8 +457,10 @@ class NDictionary(object):
             print("char")
             print(dicc2)
 
+        
+
         #printLNG(euc["EN"][NDictionary.signN])
-        return { "Sim" : getDictKey(dicc1,0), "euc" : getDictKey(euc,0), "euc2" :getDictKey(euc2,0), "cos" : getDictKey(cos,0), "char": getDictKey(dicc2, 0) }
+        return { NDictionary._sim : getDictKey(dicc1,0), NDictionary._euc3 : getDictKey(euc,0), NDictionary._euc2 :getDictKey(euc2,0), NDictionary._cos : getDictKey(cos,0), NDictionary._char : getDictKey(dicc2, 0) }
 
     def access(self, postags, nation = None):
         currNode = self.root
@@ -496,6 +526,13 @@ class TreeNode:
             children[child] = TreeNode.fromDict(childDict[child])
         result.children = children
         return result
+
+class ResultTuple:
+    def __init__(self, _answer, _source, _reasoning):
+        answer = _answer
+        count = 1
+        source = _source
+        reasoning = _reasoning
 
 def filterr(sequence, toRemove):
     sequence = list(sequence)
@@ -661,3 +698,37 @@ def addToSortedListOfNGTup(list, elem, reveersed = False):
 def printLNG(l):
     for i in l:
         print(str(i.ngram) + " - " + str(i.value))
+
+def analisysResult(anal):
+    resCount = {}
+    for an in anal:
+        currAns = anal[an]
+        if currAns not in resCount:
+            resCount[currAns] = 0
+        resCount[currAns] = resCount[currAns] + 1
+
+            
+    if len(resCount) > 1:
+        resCount = sortDictByValue(resCount, True)
+        key0 = getDictKey(resCount, 0)
+        key1 = getDictKey(resCount, 1)
+        if resCount[key0] > 1 and resCount[key0] == resCount[key1]: #remis
+            if anal[NDictionary._euc2] == key0:
+                propAnswer = key0;
+            elif anal[NDictionary._euc2] == key1:
+                propAnswer = key1
+            elif anal[NDictionary._sim] == key0:
+                propAnswer = key0
+            elif anal[NDictionary._sim] == key1:
+                propAnswer = key1
+            else:
+                propAnswer = key0;
+        else:
+            propAnswer = key0
+    else:
+        propAnswer = getDictKey(resCount, 0)
+            
+
+
+    print(propAnswer)
+    return propAnswer
