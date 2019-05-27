@@ -8,6 +8,7 @@ import os
 import ntpath
 from math import sqrt
 from pdf2txt import *
+import pdf2txt
 import copy
 
 class NDictionary(object):
@@ -16,7 +17,7 @@ class NDictionary(object):
     _root = "rk"
     distance = "distance"
     signN = "sign"
-    maxi = 3
+    maxi = 5
     minAnalDepth = 5
     maxAnalDepth = 6
 
@@ -446,7 +447,7 @@ class NDictionary(object):
 
         return resultT
         
-    def analisys(tree, ht, verbose = True):
+    def analisys(tree, ht, verbose = False):
         dicc1 = NDictionary.HTTicks(tree, ht)
 
         def euc3Metric(n1, n2):
@@ -746,3 +747,65 @@ def analisysResult(anal):
 
     
     return resultTups[0]
+
+def getNationality(path, ht_path):
+    if path.endswith(".pdf"):
+        conv = pdf2txt._convert(path)
+    elif path.endswith("_output_short.txt"):
+        conv = pdf2txt.load(path, False)
+
+    text = " ".join(conv)
+
+    td = NDictionary(NDictionary.maxAnalDepth)
+    for sentence in conv:
+        td.addSequence(txtToPOS(sentence))
+
+    hyperTree = NDictionary.fromJSONFile(ht_path)
+
+    anal = NDictionary.analisys(td, hyperTree)
+    pre_result = analisysResult(anal)
+
+    _sign = "Sign"
+    result = { "Nat": pre_result.answer, _sign : [] }
+
+    
+
+
+    for ngramT in pre_result.reasoning:
+        for sentence in conv:
+            ngram = ngramT.ngram[1:]
+            #print("sear: " + str(ngram))
+            result[_sign].extend(findWordsFromTags(sentence, ngram))
+
+    return result
+
+def findWordsFromTags(text, tags):
+    sentences = nltk.sent_tokenize(text)
+    words = []
+    for x in range(0, len(sentences)):
+        tmpsent = nltk.word_tokenize(sentences[x])
+        for y in range(0, len(tmpsent)):
+            words.append(tmpsent[y])
+    tagged = nltk.pos_tag(words)
+
+    result = []
+
+    for i in range(0, len(tagged) - len(tags)):
+        #print(tagged[i][1] + " ?= " + tags[0])
+        if tagged[i][1] == tags[0]:
+            ok = True
+            for tagit in range(0, len(tags)):
+                #print(str(2) + " " + tagged[i + tagit][1] + " ?= " + tags[tagit])
+                if tagged[i + tagit][1] != tags[tagit]:
+                    ok = False 
+            if ok:
+                print("ok")
+                toAdd = []
+                for tit in range(0, len(tags)):
+                    toAdd.append(tagged[i + tit][0])
+                result.append(toAdd)
+    return result
+
+
+
+

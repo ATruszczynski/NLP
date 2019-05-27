@@ -135,13 +135,13 @@ while(it < len(sys.argv)):
 
     else:
         print(arg)
-        conv = pdf2txt._convert(arg)[1]
-        td = NDictionary(treeDep)
+        #conv = pdf2txt._convert(arg)[1]
+        #td = NDictionary(treeDep)
         
-        for sentence in conv:
-            td.addSequence(txtToPOS(sentence))
+        #for sentence in conv:
+        #    td.addSequence(txtToPOS(sentence))
 
-        treesToCmp.append(td)
+        #treesToCmp.append(td)
         paths.append(arg)
     
     it = it + 1
@@ -152,7 +152,7 @@ directoryPath = os.path.join(cwd, directoryName)
 hyperTreePath = os.path.join(directoryPath, hyperTreeName) 
 
 
-
+#tworzenie Hyper Tree
 if(len(toWrite) > 0):
     makeDirIfNec(directoryPath)
     if os.path.exists(hyperTreePath):
@@ -177,14 +177,12 @@ if(len(toWrite) > 0):
 #print(ht.root.annotations)
 #ht = NDictionary.fromJSONFile(hyperTreePath)
 
-if len(treesToCmp) > 0:
+if len(paths) > 0:
     hyperTree = NDictionary.fromJSONFile(hyperTreePath)
-    for i in range(0, len(treesToCmp)):
-        td = treesToCmp[i]
-        patht = paths[i]
-        print(patht)
-        anal = NDictionary.analisys(td, hyperTree)
-        propAns = analisysResult(anal)
+    for i in range(0, len(paths)):
+        result = getNationality(paths[i], hyperTreePath)
+
+        print(result)
 
 _count = "count"
 _totCor = "totCor"
@@ -273,6 +271,12 @@ for result in results2:
 #hyperTree = NDictionary.fromJSONFile(hyperTreePath)
 #print(hyperTree.countNats())
 #print(hyperTree.mostPopular(6,6))
+
+#text = "Twitter outrage over image search results of black and white teens is misdirected"
+
+#tag = txtToPOS(text)
+
+#print(findWordsFromTags(text, ["CC", "JJ"]))
 
 
 
