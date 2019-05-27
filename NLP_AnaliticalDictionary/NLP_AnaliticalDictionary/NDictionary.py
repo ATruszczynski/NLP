@@ -17,7 +17,7 @@ class NDictionary(object):
     _root = "rk"
     distance = "distance"
     signN = "sign"
-    maxi = 5
+    maxi = 20
     minAnalDepth = 5
     maxAnalDepth = 6
 
@@ -769,7 +769,7 @@ def getNationality(path, ht_path):
     result = { "Nat": pre_result.answer, _sign : [] }
 
     
-
+    print(pre_result.source)
 
     for ngramT in pre_result.reasoning:
         for sentence in conv:
@@ -789,7 +789,7 @@ def findWordsFromTags(text, tags):
     tagged = nltk.pos_tag(words)
 
     result = []
-
+    #print("search")
     for i in range(0, len(tagged) - len(tags)):
         #print(tagged[i][1] + " ?= " + tags[0])
         if tagged[i][1] == tags[0]:
@@ -799,7 +799,7 @@ def findWordsFromTags(text, tags):
                 if tagged[i + tagit][1] != tags[tagit]:
                     ok = False 
             if ok:
-                print("ok")
+                #print("ok")
                 toAdd = []
                 for tit in range(0, len(tags)):
                     toAdd.append(tagged[i + tit][0])
