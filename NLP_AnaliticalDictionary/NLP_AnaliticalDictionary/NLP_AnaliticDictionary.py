@@ -225,23 +225,28 @@ if len(tests) > 0:
             corr = 0
 
             for an in anal:
-                if an not in result:
-                    result[an] = 0
-
-                if anal[an] == ans:
-                    result[an] = result[an] + 1
-                    #corr = corr + 1
+                source = an.source
+                if source not in result:
+                    result[source] = 0
+                if an.answer == ans:
+                    result[source] = result[source] + 1
+                #anal_answer = an.answer
+                #if anal_answer not in result:
+                #    result[anal_answer] = 0
+                #if anal_answer == ans:
+                #    result[anal_answer] = result[anal_answer] + 1
+                #    #corr = corr + 1
             
             propAnswer = analisysResult(anal)
             
-            if propAnswer == ans:
+            if propAnswer.answer == ans:
                 result[_totCor] = result[_totCor] + 1
             
 
             #if corr >= tresh:
             #    result[_totCor] = result[_totCor] + 1
             result[_count] = result[_count] + 1
-            print(anal)
+            #print(anal)
             print("///////////////////////////////////////////////////////")
         results2.append(result)
 
