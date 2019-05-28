@@ -69,7 +69,7 @@ while(it < len(sys.argv)):
             #        toWrite.append(filePath)
             #        toWriteNats.append(nat)
             print("loading " + str(nat))
-            loaded = load_all(readDirPath, False)
+            loaded = load_all(readDirPath, False, True)
             for text in loaded:
                 for sentence in text:
                     toWrite.append(sentence)
@@ -86,21 +86,15 @@ while(it < len(sys.argv)):
             files = os.listdir(path)
             for file in files:
                 arg = os.path.join(path, file)
-                if file.endswith(".pdf") and pdf:
-                    conv = pdf2txt._convert(arg)[1]
-                elif file.endswith("_output_short.txt") and not pdf:
-                    conv = load(arg, False)
+                if file.endswith(".txt") or file.endswith(".pdf"):
                     
-        
-                    td = NDictionary(treeDep)
-                    for sentence in conv:
-                        td.addSequence(txtToPOS(sentence))
-                    test[_trees].append(td)
+                    #print(td.print())
+                    #test[_trees].append(td)
                     test[_paths].append(arg)
-
+            #print(test)
             tests.append(test)
             
-             
+            print("Test completed " + answ)
 
         if curra == "p":
             it = it + 1
@@ -151,6 +145,8 @@ cwd = getcwd()
 directoryPath = os.path.join(cwd, directoryName)
 hyperTreePath = os.path.join(directoryPath, hyperTreeName) 
 
+if verbose:
+    print("1")
 
 #tworzenie Hyper Tree
 if(len(toWrite) > 0):
@@ -173,6 +169,8 @@ if(len(toWrite) > 0):
         print("Writing done")
 
 
+if verbose:
+    print("2")
 #ht = NDictionary.fromJSONFile(hyperTreePath)
 #print(ht.root.annotations)
 #ht = NDictionary.fromJSONFile(hyperTreePath)
@@ -189,6 +187,10 @@ _totCor = "totCor"
 results2 = []
 results = {_count : 0 }
 tot = 0
+
+
+if verbose:
+    print("3")
 
 #if len(treesToCmp) > 0:
 #    hyperTree = NDictionary.fromJSONFile(hyperTreePath)
@@ -210,17 +212,36 @@ tot = 0
 #        print(anal)
 #        print("///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////")
 
+
+if verbose:
+    print("4")
+
 if len(tests) > 0:
+    print("start ht load")
     hyperTree = NDictionary.fromJSONFile(hyperTreePath)
+    print("HT loaded")
     tresh = 3 if len(hyperTree.root.annotations) == 2 else 2
     for test in tests:
         ans = test[_answer]
         result = {_answer : ans, _count : 0, _totCor : 0 }
-        for i in range(0, len(test[_trees])):
-            print(test[_paths][i])
-            td = test[_trees][i]
+        for i in range(0, len(test[_paths])):
+            tpath = test[_paths][i]
+            print(tpath)
+        
+            if tpath.endswith(".pdf") and pdf:
+                conv = pdf2txt._convert(tpath)[0]
+            elif tpath.endswith(".txt") and not pdf:
+                conv = load(tpath, False)
+                    
+        
+            td = NDictionary(treeDep)
+            for sentence in conv:
+                td.addSequence(txtToPOS(sentence))
+
+            #td = test[_trees][i]
             anal = NDictionary.analisys(td, hyperTree, verbose)
             corr = 0
+            del td
 
             for an in anal:
                 source = an.source
@@ -240,7 +261,7 @@ if len(tests) > 0:
             if propAnswer.answer == ans:
                 result[_totCor] = result[_totCor] + 1
             
-
+            print(propAnswer.answer)
             #if corr >= tresh:
             #    result[_totCor] = result[_totCor] + 1
             result[_count] = result[_count] + 1
@@ -249,6 +270,8 @@ if len(tests) > 0:
         results2.append(result)
 
 for result in results2:
+    
+    result[NDictionary._char] = result[NDictionary._char]/2
     print(result)
     div = result[_count]
     if div != 0:

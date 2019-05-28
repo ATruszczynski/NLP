@@ -12,14 +12,19 @@ import pdf2txt
 import copy
 
 class NDictionary(object):
-    toRemove = list(("\"", ":", ";", "(", ")", " ", "",'', "DT", "...",'','``',"''", "\n"))
+    toRemove = list(("\"", ":", ";", "(", ")", " ", "",'', "...",'','``',"''", "\n"))
     _maxDepth = "mdk"
     _root = "rk"
     distance = "distance"
     signN = "sign"
     maxi = 20
-    minAnalDepth = 5
+    minAnalDepth = 6
     maxAnalDepth = 6
+
+    htt = 1
+    eucc = 1.5
+    chartol = 1.1
+    dealbreaker = [5, 3, 4, 2, 1, 0]
 
     _sim = "sim"
     _euc2 = "euc2"
@@ -273,7 +278,7 @@ class NDictionary(object):
                         ann = getDictKey(sort_ann, 0)
 
                         if len(sav) == 1:
-                            toAdd = 10
+                            toAdd = 5*tol
                         else:
                             toAdd = sav[0]/sav[1]
 
@@ -448,10 +453,10 @@ class NDictionary(object):
         return resultT
         
     def analisys(tree, ht, verbose = False):
-        dicc1 = NDictionary.HTTicks(tree, ht)
+        dicc1 = NDictionary.HTTicks(tree, ht, NDictionary.htt)
 
         def euc3Metric(n1, n2):
-            return (abs(n1 - n2))**3
+            return (abs(n1 - n2))**NDictionary.eucc
         
         euc3 = NDictionary.simpleMetricComp(tree, ht, euc3Metric)
         euc3.source = NDictionary._euc3
@@ -464,7 +469,7 @@ class NDictionary(object):
 
         cos = NDictionary.cosineWithHt(tree, ht)
         
-        dicc2 = NDictionary.characteristic(tree, ht, 3)
+        dicc2 = NDictionary.characteristic(tree, ht, NDictionary.chartol)
 
         if verbose:
             print("Sim")
@@ -478,8 +483,7 @@ class NDictionary(object):
             print("char")
             print(dicc2)
 
-        
-        return [dicc1, euc2, euc3, cos, dicc2]
+        return [dicc1, euc2, euc3, cos, dicc2, dicc2]
 
     def access(self, postags, nation = None):
         currNode = self.root
@@ -715,7 +719,7 @@ def printLNG(l):
 
 def analisysResult(anal):
     
-    anal[0].dealbreaker, anal[1].dealbreaker, anal[2].dealbreaker, anal[3].dealbreaker,  anal[4].dealbreaker = [3, 5, 4, 2, 1]
+    anal[0].dealbreaker, anal[1].dealbreaker, anal[2].dealbreaker, anal[3].dealbreaker,  anal[4].dealbreaker, anal[5].dealbreaker = NDictionary.dealbreaker
 
     prop = {}
 
@@ -750,8 +754,8 @@ def analisysResult(anal):
 
 def getNationality(path, ht_path):
     if path.endswith(".pdf"):
-        conv = pdf2txt._convert(path)
-    elif path.endswith("_output_short.txt"):
+        conv = pdf2txt._convert(path)[0]
+    elif path.endswith("_output.txt"):
         conv = pdf2txt.load(path, False)
 
     text = " ".join(conv)
@@ -759,6 +763,8 @@ def getNationality(path, ht_path):
     td = NDictionary(NDictionary.maxAnalDepth)
     for sentence in conv:
         td.addSequence(txtToPOS(sentence))
+
+    print(td.print())
 
     hyperTree = NDictionary.fromJSONFile(ht_path)
 
