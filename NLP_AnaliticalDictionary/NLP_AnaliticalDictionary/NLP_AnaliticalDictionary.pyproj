@@ -14,7 +14,7 @@
     <InterpreterId>Global|ContinuumAnalytics|Anaconda36-64</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-tall C:\Users\Aleksander\Desktop\NLP_test_folder\PDFs\Datasets\Long\VN-test VN -d DT</CommandLineArguments>
+    <CommandLineArguments>-tall C:\Users\Aleksander\Desktop\NLP_test_folder\PDFs\Datasets\Long\VN-test VN</CommandLineArguments>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
