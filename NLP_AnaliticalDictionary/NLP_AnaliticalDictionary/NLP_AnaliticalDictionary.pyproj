@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>b4a1f0c9-d7ca-4e1c-a426-066f0cab2268</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>NLP_AnaliticDictionary.py</StartupFile>
+    <StartupFile>NLP_GenScript.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -14,7 +14,7 @@
     <InterpreterId>Global|ContinuumAnalytics|Anaconda36-64</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-tall C:\Users\Aleksander\Desktop\NLP_test_folder\PDFs\Datasets\Long\VN-test VN</CommandLineArguments>
+    <CommandLineArguments>C:\Users\Aleksander\Desktop\NLP_test_folder\PDFs\Poland\BroziIzdebskiRak_output.txt</CommandLineArguments>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -29,11 +29,9 @@
     <InterpreterReference Include="Global|ContinuumAnalytics|Anaconda36-64" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Converter.py" />
     <Compile Include="NDictionary.py" />
-    <Compile Include="NLP_AnaliticDictionary.py" />
+    <Compile Include="NLP_GenScript.py" />
     <Compile Include="pdf2txt.py" />
-    <Compile Include="StackItem.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

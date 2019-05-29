@@ -1,4 +1,3 @@
-from StackItem import *
 import nltk
 import docx2txt
 #from NDictionary import *
@@ -550,6 +549,32 @@ class TreeNode:
         result.children = children
         return result
 
+class StackItem:
+    def __init__(self, d, t, tn):
+        self.touched = False
+        self.depth = d
+        self.token = t
+        self.treeNode = tn
+
+class NGramTuple:
+    def __init__(self, _ngram, _value):
+        self.ngram = _ngram
+        self.value = _value
+    def __str__(self):
+        return "<" + str(self.ngram) + ", " + str(self.value) + ">"
+
+class ResultTuple:
+    def __init__(self, _answer, _source, _reasoning = []):
+        self.answer = _answer
+        self.source = _source
+        self.score = 0
+        self.reasoning = _reasoning
+        self.dealbreaker = 1
+    def print(self):
+        return "[" + self.answer + ", " + self.source + ", " + str(self.score) + ", " + str(self.reasoning) + ", " + str(self.dealbreaker) + "]"
+    def __str__(self):
+        return self.print()
+
 
 
 def filterr(sequence, toRemove):
@@ -764,7 +789,7 @@ def getNationality(path, ht_path):
     for sentence in conv:
         td.addSequence(txtToPOS(sentence))
 
-    print(td.print())
+    #print(td.print())
 
     hyperTree = NDictionary.fromJSONFile(ht_path)
 
@@ -782,6 +807,21 @@ def getNationality(path, ht_path):
             ngram = ngramT.ngram[1:]
             #print("sear: " + str(ngram))
             result[_sign].extend(findWordsFromTags(sentence, ngram))
+
+    sentlist = result[_sign]
+    keep = [True] * len(sentlist)
+    for i in range(0, len(sentlist) - 1):
+        for j in range(i + 1, len(sentlist)):
+            #print(str(sentlist[i]) + " =? " + str(sentlist[j]) +  " -> " + str(sentlist[i] == sentlist[j]))
+            
+            if sentlist[i] == sentlist[j]:
+                keep[j] = False
+
+    result[_sign] = []
+
+    for i in range(0, len(sentlist)):
+        if keep[i]:
+            result[_sign].append(sentlist[i])
 
     return result
 

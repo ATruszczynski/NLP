@@ -1,5 +1,3 @@
-#from Converter import wordToPOS, txtToPOS, writeToNationTree
-from Converter import *
 import enum
 from NDictionary import *
 #from NDictionary import Dicc
